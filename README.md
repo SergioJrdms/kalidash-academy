@@ -277,7 +277,7 @@ manda para o PostHog sempre e para o banco só o que está na lista `DURABLE`.
 
 ### Configurar
 
-1. Crie a conta em https://posthog.com — escolha a região **EU** (LGPD)
+1. Crie a conta em https://posthog.com (este projeto usa a região **US**)
 2. Copie a Project API Key (`phc_...`)
 3. Na Vercel, adicione `VITE_POSTHOG_KEY` e faça redeploy
 
@@ -286,9 +286,9 @@ nem entra no bundle. Os números do `/admin/insights` continuam funcionando —
 eles não dependem dela.
 
 O `vercel.json` faz proxy de `/ingest` para o PostHog, para não morrer em
-bloqueador de anúncios. **Se você escolher a região US**, troque
-`eu.i.posthog.com` por `us.i.posthog.com` (e `eu-assets` por `us-assets`) nos
-rewrites.
+bloqueador de anúncios. O projeto está na região **US** — os rewrites apontam
+para `us.i.posthog.com` e `us-assets.i.posthog.com`. Se algum dia migrar para
+a UE, troque os dois lá e o `ui_host` em `src/lib/analytics.ts`.
 
 O `posthog-js` entra por import dinâmico: ~260 kB num chunk separado, carregado
 depois da primeira tela. O bundle principal não engorda.

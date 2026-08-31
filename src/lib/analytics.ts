@@ -31,7 +31,7 @@ export function initAnalytics(): void {
     .then(({ default: posthog }) => {
       posthog.init(KEY, {
         api_host: HOST,
-        ui_host: 'https://eu.posthog.com',
+        ui_host: 'https://us.posthog.com',
         person_profiles: 'identified_only',
         capture_pageview: false, // disparamos na troca de rota do React Router
         autocapture: true, // "onde clica", sem instrumentar botão por botão
