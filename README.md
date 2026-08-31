@@ -227,15 +227,26 @@ npm run build
 
 O resultado fica em `dist/`.
 
-**Cloudflare Pages** (recomendado, gratuito):
+**Vercel:**
+
+- Framework preset: `Vite` (detectado sozinho)
+- Build command: `npm run build`
+- Output directory: `dist`
+- Variáveis de ambiente: `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
+
+O fallback de SPA vem do `vercel.json` (`rewrites` de `/(.*)` para
+`/index.html`). **Sem ele o Vercel devolve 404** em `/conteudos`, `/perfil` e
+`/admin` quando a página é recarregada — o Vercel não lê `public/_redirects`.
+
+**Cloudflare Pages ou Netlify:**
 
 - Build command: `npm run build`
 - Build output directory: `dist`
-- Variáveis de ambiente: `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
+- Mesmas duas variáveis de ambiente
 
-O `public/_redirects` já contém o fallback de SPA (`/* /index.html 200`), então
-`/conteudos`, `/perfil` e `/admin` funcionam ao recarregar a página. O mesmo
-arquivo serve para Netlify.
+Nesses dois o fallback vem do `public/_redirects` (`/* /index.html 200`).
+
+Os dois arquivos convivem sem conflito: cada host lê o seu e ignora o outro.
 
 Depois do deploy, volte e ajuste:
 
