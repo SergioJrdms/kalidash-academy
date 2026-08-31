@@ -107,6 +107,41 @@ function pemToDer(pem: string): Uint8Array {
   return out
 }
 
+/** Comprimento em DER: curto (<128) em 1 byte, senão 0x80|n seguido de n bytes. */
+function derLength(n: number): number[] {
+  if (n < 0x80) return [n]
+  const bytes: number[] = []
+  let v = n
+  while (v > 0) {
+    bytes.unshift(v & 0xff)
+    v >>= 8
+  }
+  return [0x80 | bytes.length, ...bytes]
+}
+
+/**
+ * O Mux entrega a chave de assinatura em PKCS#1 (`BEGIN RSA PRIVATE KEY`),
+ * mas WebCrypto só importa PKCS#8 (`BEGIN PRIVATE KEY`). A conversão é
+ * puramente estrutural: embrulhamos o RSAPrivateKey num PrivateKeyInfo.
+ *
+ *   SEQUENCE {
+ *     INTEGER 0                                    -- versão
+ *     SEQUENCE { OID 1.2.840.113549.1.1.1, NULL }  -- rsaEncryption
+ *     OCTET STRING { <PKCS#1 DER> }
+ *   }
+ */
+function pkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array {
+  const version = [0x02, 0x01, 0x00]
+  const rsaAlgorithm = [
+    0x30, 0x0d,
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
+    0x05, 0x00,
+  ]
+  const octetString = [0x04, ...derLength(pkcs1.length), ...pkcs1]
+  const inner = [...version, ...rsaAlgorithm, ...octetString]
+  return new Uint8Array([0x30, ...derLength(inner.length), ...inner])
+}
+
 let cachedKey: CryptoKey | null = null
 
 async function signingKey(): Promise<CryptoKey> {
@@ -115,16 +150,40 @@ async function signingKey(): Promise<CryptoKey> {
   const raw = Deno.env.get('MUX_SIGNING_PRIVATE_KEY')
   if (!raw) throw new Error('MUX_SIGNING_PRIVATE_KEY ausente')
 
-  // O Mux entrega a chave privada em base64. Aceitamos também o PEM cru.
+  // O Mux entrega a chave em base64. Aceitamos também o PEM cru.
   const pem = raw.includes('-----BEGIN') ? raw : atob(raw)
+  const der = pemToDer(pem)
 
-  cachedKey = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToDer(pem),
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  )
+  const looksPkcs1 = /BEGIN RSA PRIVATE KEY/.test(pem)
+  const algorithm = { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' } as const
+
+  try {
+    cachedKey = await crypto.subtle.importKey(
+      'pkcs8',
+      looksPkcs1 ? pkcs1ToPkcs8(der) : der,
+      algorithm,
+      false,
+      ['sign'],
+    )
+  } catch (err) {
+    // Cabeçalho ausente ou mentiroso: tenta o outro formato antes de desistir.
+    try {
+      cachedKey = await crypto.subtle.importKey(
+        'pkcs8',
+        looksPkcs1 ? der : pkcs1ToPkcs8(der),
+        algorithm,
+        false,
+        ['sign'],
+      )
+    } catch {
+      throw new Error(
+        `MUX_SIGNING_PRIVATE_KEY não pôde ser importada (nem PKCS#8 nem PKCS#1): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      )
+    }
+  }
+
   return cachedKey
 }
 
