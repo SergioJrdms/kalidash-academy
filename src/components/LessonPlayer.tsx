@@ -95,8 +95,8 @@ export type LessonPlayerProps = {
   /** de onde retomar */
   startAt: number
   onEnded?: () => void
-  /** avisa a página do tempo assistido para o "marcar como concluída" */
-  onTime?: (seconds: number) => void
+  /** avisa a página do tempo assistido e da duração total do vídeo */
+  onTime?: (seconds: number, totalSeconds: number) => void
 }
 
 export default function LessonPlayer({
@@ -260,7 +260,7 @@ export default function LessonPlayer({
           const el = e.currentTarget as HTMLVideoElement
           const t = el.currentTime
           currentTime.current = t
-          onTime?.(t)
+          onTime?.(t, el.duration || 0)
           if (t - lastSaved.current >= SAVE_EVERY_SECONDS) flush(t)
         }}
         onPause={(e) => {

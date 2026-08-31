@@ -14,6 +14,7 @@ import {
 } from '../components/ui'
 import { NAV_ICON } from '../lib/icons'
 import UnlockModal from '../components/UnlockModal'
+import { track } from '../lib/analytics'
 
 export default function Eventos() {
   const { isPaid } = useAuth()
@@ -68,10 +69,29 @@ export default function Eventos() {
 
   function open(e: AcademyEvent) {
     const url = e.recording_url ?? e.external_url
+    const gravacao = Boolean(e.recording_url)
+
     if (e.access_type === 'paid' && !isPaid) {
+      track('event_clicked', {
+        evento_id: e.id,
+        titulo: e.title,
+        formato: e.format,
+        gravacao,
+        bloqueado: true,
+      })
       setLocked(e.title)
       return
     }
+
+    track('event_clicked', {
+      evento_id: e.id,
+      titulo: e.title,
+      formato: e.format,
+      gravacao,
+      bloqueado: false,
+      tem_link: Boolean(url),
+    })
+
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
 

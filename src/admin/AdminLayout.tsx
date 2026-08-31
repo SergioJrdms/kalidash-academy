@@ -4,6 +4,7 @@ const LINKS = [
   { to: '/admin/cursos', label: 'Conteúdos' },
   { to: '/admin/eventos', label: 'Eventos' },
   { to: '/admin/usuarios', label: 'Usuários' },
+  { to: '/admin/insights', label: 'Insights' },
 ]
 
 export default function AdminLayout() {

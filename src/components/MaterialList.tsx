@@ -3,16 +3,19 @@ import { downloadMaterial } from '../services/media'
 import { fileExtension, formatFileSize } from '../lib/format'
 import type { MaterialOutline } from '../types/db'
 import { Banner, Kicker, Spinner } from './ui'
+import { track } from '../lib/analytics'
 
 /** "Leve com você" — a lista de materiais da aula. */
 export default function MaterialList({
   materials,
   unlocked,
   onLockedClick,
+  courseId,
 }: {
   materials: MaterialOutline[]
   unlocked: boolean
   onLockedClick: () => void
+  courseId?: string | null
 }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +31,14 @@ export default function MaterialList({
     setError(null)
     try {
       await downloadMaterial(id)
+      const m = materials.find((x) => x.id === id)
+      track('material_downloaded', {
+        lesson_id: m?.lesson_id ?? null,
+        course_id: courseId ?? null,
+        material_id: id,
+        titulo: m?.title,
+        arquivo: m?.file_name,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível baixar o material.')
     } finally {

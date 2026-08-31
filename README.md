@@ -256,6 +256,66 @@ Depois do deploy, volte e ajuste:
 
 ---
 
+## Analytics
+
+Duas camadas, com divisão clara de responsabilidade.
+
+**PostHog** — comportamento de interface. Autocapture registra todo clique sem
+instrumentação, session replay mostra a navegação real, e os funis saem prontos.
+É exploratório e descartável: se a pessoa usar bloqueador de anúncios, some.
+
+**Tabela `analytics_events` no Supabase** — o punhado de sinais que viram
+decisão de produto e precisam ser cruzados com curso, aula e usuário. Não
+depende de terceiro nem de bloqueador:
+
+`course_viewed` · `unlock_clicked` · `lesson_started` · `video_progress`
+(25/50/75/100%) · `lesson_completed` · `lesson_applied` · `material_downloaded`
+· `event_clicked`
+
+Tudo passa por um `track()` único em [analytics.ts](src/lib/analytics.ts), que
+manda para o PostHog sempre e para o banco só o que está na lista `DURABLE`.
+
+### Configurar
+
+1. Crie a conta em https://posthog.com — escolha a região **EU** (LGPD)
+2. Copie a Project API Key (`phc_...`)
+3. Na Vercel, adicione `VITE_POSTHOG_KEY` e faça redeploy
+
+Sem a chave, todo o tracking do PostHog vira no-op silencioso e a biblioteca
+nem entra no bundle. Os números do `/admin/insights` continuam funcionando —
+eles não dependem dela.
+
+O `vercel.json` faz proxy de `/ingest` para o PostHog, para não morrer em
+bloqueador de anúncios. **Se você escolher a região US**, troque
+`eu.i.posthog.com` por `us.i.posthog.com` (e `eu-assets` por `us-assets`) nos
+rewrites.
+
+O `posthog-js` entra por import dinâmico: ~260 kB num chunk separado, carregado
+depois da primeira tela. O bundle principal não engorda.
+
+### `/admin/insights`
+
+Responde em SQL, direto do seu banco:
+
+- **Interesse por conteúdo** — aberturas e cliques em "Desbloquear" por curso.
+  É o que diz qual "em breve" vale produzir primeiro.
+- **Engajamento por curso** — alunos, aulas concluídas, aplicações, minutos.
+- **Onde a trilha perde gente** — aula a aula, na ordem real.
+- **Volume de eventos** — para conferir se o rastreamento está vivo.
+
+As quatro consultas são funções `security definer` que checam `is_admin()` por
+dentro. Verificado: aluno recebe `acesso negado`, lê `[]` de `analytics_events`
+e não consegue inserir evento em nome de outra pessoa.
+
+### LGPD
+
+O replay mascara todos os campos de input por padrão. Para esconder algo
+específico do replay, marque o elemento com `data-private`. Nos eventos só vai
+`user_id` — nada de e-mail, nome ou empresa no payload. Vale citar o uso de
+analytics e replay na política de privacidade.
+
+---
+
 ## Comandos
 
 ```bash

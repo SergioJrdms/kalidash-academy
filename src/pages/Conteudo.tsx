@@ -19,6 +19,7 @@ import {
 import UnlockModal from '../components/UnlockModal'
 import { useEffect } from 'react'
 import type { LessonProgress } from '../types/db'
+import { track } from '../lib/analytics'
 
 export default function Conteudo() {
   const { slug } = useParams<{ slug: string }>()
@@ -29,6 +30,20 @@ export default function Conteudo() {
   const [completed, setCompleted] = useState<Set<string>>(new Set())
 
   const course = useMemo(() => courses.find((c) => c.slug === slug), [courses, slug])
+
+  // "Qual conteúdo desperta interesse" — inclusive os que estão em breve
+  // e os pagos que a pessoa abre sem ter acesso.
+  useEffect(() => {
+    if (!course) return
+    track('course_viewed', {
+      course_id: course.id,
+      slug: course.slug,
+      area: course.area,
+      status: course.status,
+      access_type: course.access_type,
+      bloqueado: course.status !== 'coming_soon' && !course.hasFreeLesson && !isPaid,
+    })
+  }, [course?.id, isPaid])
 
   useEffect(() => {
     const userId = session?.user.id
@@ -216,7 +231,18 @@ export default function Conteudo() {
               abre com o acesso.
             </p>
           </div>
-          <PrimaryButton onClick={() => setShowUnlock(true)} style={{ whiteSpace: 'nowrap' }}>
+          <PrimaryButton
+            onClick={() => {
+              track('unlock_clicked', {
+                course_id: course.id,
+                slug: course.slug,
+                area: course.area,
+                origem: 'pagina_do_curso',
+              })
+              setShowUnlock(true)
+            }}
+            style={{ whiteSpace: 'nowrap' }}
+          >
             Desbloquear acesso
           </PrimaryButton>
         </div>

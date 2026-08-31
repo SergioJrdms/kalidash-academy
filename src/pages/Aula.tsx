@@ -23,6 +23,7 @@ import ApplicationBlock from '../components/ApplicationBlock'
 import MaterialList from '../components/MaterialList'
 import PersonalizationModal from '../components/PersonalizationModal'
 import UnlockModal from '../components/UnlockModal'
+import { makeVideoMilestoneTracker, track } from '../lib/analytics'
 
 export default function Aula() {
   const { lessonId } = useParams<{ lessonId: string }>()
@@ -84,6 +85,22 @@ export default function Aula() {
     [course, lessonId],
   )
 
+  const milestone = useMemo(
+    () => (lessonId ? makeVideoMilestoneTracker(lessonId, course?.id ?? null) : null),
+    [lessonId, course?.id],
+  )
+
+  useEffect(() => {
+    if (!view || !lessonId) return
+    track('lesson_started', {
+      lesson_id: lessonId,
+      course_id: course?.id ?? null,
+      titulo: view.outline.title,
+      bloqueada: !isLessonUnlocked(view.outline, isPaid),
+      tem_video: view.outline.has_video,
+    })
+  }, [view?.outline.id, isPaid])
+
   if (loading || catalogLoading) return <PageLoading />
 
   if (error || !view) {
@@ -124,6 +141,13 @@ export default function Aula() {
     try {
       const updated = await toggleApplied(userId, lessonId, !isApplied)
       setProgress(updated)
+      if (!isApplied) {
+        track('lesson_applied', {
+          lesson_id: lessonId,
+          course_id: course?.id ?? null,
+          titulo: outline.title,
+        })
+      }
       // Primeira aplicação e ainda sem personalização: é o momento do protótipo.
       if (!isApplied && !profile?.area) setShowPers(true)
     } catch (err) {
@@ -144,6 +168,14 @@ export default function Aula() {
         ? await unmarkCompleted(userId, lessonId)
         : await markCompleted(userId, lessonId, watched.current)
       setProgress(updated)
+      if (!isDone) {
+        track('lesson_completed', {
+          lesson_id: lessonId,
+          course_id: course?.id ?? null,
+          titulo: outline.title,
+          segundos_assistidos: Math.round(watched.current),
+        })
+      }
       void reloadCatalog()
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Não conseguimos salvar.')
@@ -176,8 +208,9 @@ export default function Aula() {
           unlocked={unlocked}
           videoStatus={full?.video_status ?? 'empty'}
           startAt={progress?.watched_seconds ?? 0}
-          onTime={(t) => {
+          onTime={(t, total) => {
             watched.current = t
+            milestone?.(t, total)
           }}
           onEnded={() => {
             if (!isDone) void handleDone()
@@ -329,7 +362,15 @@ export default function Aula() {
       <MaterialList
         materials={materials}
         unlocked={unlocked}
-        onLockedClick={() => setShowUnlock(true)}
+        courseId={course?.id ?? null}
+        onLockedClick={() => {
+          track('unlock_clicked', {
+            course_id: course?.id ?? null,
+            lesson_id: outline.id,
+            origem: 'material_bloqueado',
+          })
+          setShowUnlock(true)
+        }}
       />
 
       {/* ---------- SEU PRÓXIMO PASSO ---------- */}

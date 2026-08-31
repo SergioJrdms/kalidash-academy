@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { applyTheme, getStoredTheme } from './lib/theme'
+import { identify, initAnalytics, resetIdentity, trackPageview } from './lib/analytics'
 import AppLayout from './components/AppLayout'
 import { PageLoading, Spinner } from './components/ui'
 
@@ -20,6 +21,7 @@ const AdminCourseEdit = lazy(() => import('./admin/AdminCourseEdit'))
 const AdminLessonEdit = lazy(() => import('./admin/AdminLessonEdit'))
 const AdminEvents = lazy(() => import('./admin/AdminEvents'))
 const AdminUsers = lazy(() => import('./admin/AdminUsers'))
+const AdminInsights = lazy(() => import('./admin/AdminInsights'))
 
 function FullScreenLoading() {
   return (
@@ -62,11 +64,46 @@ function ThemeBoot() {
   return null
 }
 
+/**
+ * Liga o PostHog ao ciclo de vida do app: identifica quando a sessão
+ * aparece, esquece no logout e registra pageview a cada troca de rota
+ * (o React Router não recarrega a página, então o automático não serve).
+ */
+function AnalyticsBoot() {
+  const { session, profile } = useAuth()
+  const location = useLocation()
+
+  useEffect(() => {
+    initAnalytics()
+  }, [])
+
+  useEffect(() => {
+    if (session?.user && profile) {
+      identify(session.user.id, {
+        area: profile.area ?? undefined,
+        goal: profile.goal ?? undefined,
+        company: profile.company ?? undefined,
+        access_level: profile.access_level,
+        role: profile.role,
+      })
+    } else if (!session) {
+      resetIdentity()
+    }
+  }, [session?.user.id, profile?.area, profile?.access_level, profile?.role])
+
+  useEffect(() => {
+    trackPageview(location.pathname + location.search)
+  }, [location.pathname, location.search])
+
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <ThemeBoot />
+        <AnalyticsBoot />
         <Suspense fallback={<FullScreenLoading />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -110,6 +147,7 @@ export default function App() {
               <Route path="aulas/:lessonId" element={<AdminLessonEdit />} />
               <Route path="eventos" element={<AdminEvents />} />
               <Route path="usuarios" element={<AdminUsers />} />
+              <Route path="insights" element={<AdminInsights />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
