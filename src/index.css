@@ -317,6 +317,18 @@ mux-player {
 /* ---------------------------------------------------------------------
    responsivo
    --------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------
+   Container de página
+   Cada tela define o próprio max-width (a medida de leitura muda entre
+   uma aula de texto e a vitrine de cursos). O que elas não faziam era
+   centralizar: em tela larga o bloco grudava na esquerda e sobrava um
+   vazio enorme à direita. O Admin já centralizava; agora o aluno também.
+   --------------------------------------------------------------------- */
+.k-page {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 @media (max-width: 900px) {
   .k-page {
     padding-left: 20px !important;
