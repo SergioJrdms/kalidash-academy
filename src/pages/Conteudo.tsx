@@ -103,7 +103,7 @@ export default function Conteudo() {
   const hasStarted = course.completedCount > 0
 
   return (
-    <div className="k-page" style={{ padding: '44px 56px 100px', maxWidth: 960 }}>
+    <div className="k-page" style={{ padding: '44px 56px 100px', maxWidth: 1080 }}>
       <Link
         to="/conteudos"
         style={{
@@ -144,7 +144,7 @@ export default function Conteudo() {
           lineHeight: 1.12,
           letterSpacing: '-.03em',
           margin: '0 0 18px',
-          maxWidth: 640,
+          maxWidth: 720,
         }}
       >
         {course.title}
@@ -157,7 +157,7 @@ export default function Conteudo() {
             lineHeight: 1.62,
             color: 'var(--tx)',
             margin: '0 0 26px',
-            maxWidth: 620,
+            maxWidth: 700,
             textWrap: 'pretty',
           }}
         >

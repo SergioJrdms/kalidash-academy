@@ -133,7 +133,7 @@ export default function Home() {
     : 'termine a aula atual e conte em que área você trabalha — a home passa a mostrar o que serve para você.'
 
   return (
-    <div className="k-page" style={{ padding: '64px 56px 100px', maxWidth: 900 }}>
+    <div className="k-page" style={{ padding: '64px 56px 100px', maxWidth: 1080 }}>
       <div style={{ marginBottom: 52 }}>
         <h1
           className="k-h1"

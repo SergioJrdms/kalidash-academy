@@ -62,7 +62,7 @@ export default function Conteudos() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 1060 }}>
+    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 1180 }}>
       <h1
         className="k-h1"
         style={{

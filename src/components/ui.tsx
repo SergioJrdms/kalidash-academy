@@ -430,7 +430,7 @@ export function Skeleton({
 
 export function PageLoading() {
   return (
-    <div style={{ padding: '64px 56px 100px', maxWidth: 900 }} className="k-page">
+    <div style={{ padding: '64px 56px 100px', maxWidth: 1080 }} className="k-page">
       <Skeleton height={34} width="60%" style={{ marginBottom: 14 }} />
       <Skeleton height={18} width="42%" style={{ marginBottom: 52 }} />
       <Skeleton height={150} radius={22} style={{ marginBottom: 24 }} />

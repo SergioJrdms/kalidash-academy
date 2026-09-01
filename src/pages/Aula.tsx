@@ -185,7 +185,7 @@ export default function Aula() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '40px 56px 100px', maxWidth: 840 }}>
+    <div className="k-page" style={{ padding: '40px 56px 100px', maxWidth: 1000 }}>
       <Link
         to={crumbTo}
         style={{
@@ -228,7 +228,7 @@ export default function Aula() {
           lineHeight: 1.2,
           letterSpacing: '-.025em',
           margin: '0 0 16px',
-          maxWidth: 640,
+          maxWidth: 720,
         }}
       >
         {outline.title}
@@ -291,7 +291,7 @@ export default function Aula() {
             lineHeight: 1.7,
             color: 'var(--tx)',
             margin: `0 0 ${bodyHtml ? 34 : 44}px`,
-            maxWidth: 640,
+            maxWidth: 720,
             textWrap: 'pretty',
           }}
         >

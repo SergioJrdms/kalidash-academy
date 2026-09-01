@@ -44,7 +44,7 @@ export default function Perfil() {
   ]
 
   return (
-    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 720 }}>
+    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 880 }}>
       <h1
         className="k-h1"
         style={{

@@ -96,7 +96,7 @@ export default function Eventos() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 900 }}>
+    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 1080 }}>
       <h1
         className="k-h1"
         style={{

@@ -206,7 +206,7 @@ button:disabled {
   font-size: 15px;
   line-height: 1.75;
   color: var(--tx);
-  max-width: 640px;
+  max-width: 720px;
 }
 .k-md > *:first-child {
   margin-top: 0;
