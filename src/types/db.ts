@@ -59,6 +59,12 @@ export type Course = {
   instructor_name: string | null
   instructor_avatar_url: string | null
   sort_order: number
+  kind: ContentKind
+  level: ContentLevel | null
+  level_max: ContentLevel | null
+  has_certificate: boolean
+  outcomes: string[]
+  hero_image_url: string | null
   created_at: string
   updated_at: string
   published_at: string | null
@@ -92,6 +98,7 @@ export type Lesson = {
   application_minutes: number | null
   application_steps: string[]
   application_note: string | null
+  transcript: string | null
   created_at: string
   updated_at: string
   published_at: string | null
@@ -151,4 +158,96 @@ export type AcademyEvent = {
   status: EventStatus
   created_at: string
   updated_at: string
+}
+
+// =====================================================================
+// Produto novo do redesign
+// =====================================================================
+
+export type ContentKind = 'curso' | 'trilha'
+export type ContentLevel = 'Iniciante' | 'Intermediário' | 'Avançado'
+export type LabStatus = 'draft' | 'published'
+
+export type Skill = {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  icon: string | null
+  sort_order: number
+}
+
+export type UserSkill = {
+  user_id: string
+  skill_id: string
+  progress: number
+  updated_at: string
+}
+
+export type Journey = {
+  id: string
+  slug: string
+  title: string
+  subtitle: string | null
+  area: string | null
+  sort_order: number
+}
+
+export type JourneyStep = {
+  id: string
+  journey_id: string
+  title: string
+  course_id: string | null
+  sort_order: number
+}
+
+export type Lab = {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+  body_markdown: string | null
+  minutes: number | null
+  level: ContentLevel | null
+  image_url: string | null
+  is_case: boolean
+  featured: boolean
+  lesson_id: string | null
+  status: LabStatus
+  sort_order: number
+}
+
+export type LabSubmission = {
+  id: string
+  user_id: string
+  lab_id: string
+  content: string | null
+  completed_at: string | null
+  updated_at: string
+}
+
+export type LessonQuiz = {
+  id: string
+  lesson_id: string
+  question: string
+  options: string[]
+  correct_index: number
+  explanation: string | null
+  sort_order: number
+}
+
+export type LessonNote = {
+  id: string
+  user_id: string
+  lesson_id: string
+  content: string
+  updated_at: string
+}
+
+export type Certificate = {
+  id: string
+  user_id: string
+  course_id: string
+  issued_at: string
+  code: string
 }
