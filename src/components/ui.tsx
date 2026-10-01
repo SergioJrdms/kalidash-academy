@@ -1,13 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react'
 
 // ---------------------------------------------------------------------
-// Ícone: mesmo traçado do protótipo (stroke 1.6~2, linecap round)
+// Ícone — traço fino, como o design do Figma
 // ---------------------------------------------------------------------
 export function Icon({
   d,
   size = 18,
   stroke = 'currentColor',
-  width = 1.6,
+  width = 1.5,
   fill = 'none',
   style,
 }: {
@@ -36,8 +36,7 @@ export function Icon({
   )
 }
 
-/** Cadeado — no protótipo é path + rect, então tem componente próprio. */
-export function LockIcon({ size = 13, color = 'var(--tx3)' }: { size?: number; color?: string }) {
+export function LockIcon({ size = 14, color = 'var(--tx3)' }: { size?: number; color?: string }) {
   return (
     <svg
       width={size}
@@ -45,7 +44,7 @@ export function LockIcon({ size = 13, color = 'var(--tx3)' }: { size?: number; c
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
-      strokeWidth={2}
+      strokeWidth={1.7}
       strokeLinecap="round"
       style={{ flex: 'none' }}
       aria-hidden="true"
@@ -57,36 +56,8 @@ export function LockIcon({ size = 13, color = 'var(--tx3)' }: { size?: number; c
 }
 
 // ---------------------------------------------------------------------
-// Botões
+// Botões — raio 10px, sem sombra, como especificado
 // ---------------------------------------------------------------------
-const PRIMARY: CSSProperties = {
-  background: 'linear-gradient(180deg,#8a5cff,var(--p))',
-  border: 'none',
-  color: '#fff',
-  borderRadius: 999,
-  fontWeight: 600,
-  cursor: 'pointer',
-  boxShadow: 'var(--glow)',
-}
-
-const GHOST: CSSProperties = {
-  background: 'transparent',
-  border: '1px solid var(--line2)',
-  color: 'var(--tx)',
-  borderRadius: 999,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const SOFT: CSSProperties = {
-  background: 'var(--psoft)',
-  border: '1px solid var(--pline)',
-  color: 'var(--p2)',
-  borderRadius: 999,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
 export function PrimaryButton({
   children,
   onClick,
@@ -108,10 +79,20 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       style={{
-        ...PRIMARY,
-        padding: '14px 30px',
-        fontSize: 13.5,
+        background: 'var(--imperial)',
+        border: 'none',
+        color: 'var(--bg)',
+        borderRadius: 'var(--r-control)',
+        padding: '11px 24px',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
         width: full ? '100%' : undefined,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 9,
+        transition: 'opacity .18s',
         ...style,
       }}
     >
@@ -142,10 +123,19 @@ export function GhostButton({
       disabled={disabled}
       className="k-hoverable"
       style={{
-        ...GHOST,
-        padding: '12px 26px',
-        fontSize: 12.5,
+        background: 'var(--surface)',
+        border: '1px solid var(--line2)',
+        color: 'var(--tx)',
+        borderRadius: 'var(--r-control)',
+        padding: '10px 20px',
+        fontSize: 14,
+        fontWeight: 500,
+        cursor: 'pointer',
         width: full ? '100%' : undefined,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 9,
         ...style,
       }}
     >
@@ -154,29 +144,28 @@ export function GhostButton({
   )
 }
 
-export function SoftButton({
+/** Link textual em bronze — usado para "Ver todos", "Esqueci minha senha". */
+export function TextLink({
   children,
   onClick,
-  disabled,
   style,
-  full,
 }: {
   children: ReactNode
   onClick?: () => void
-  disabled?: boolean
   style?: CSSProperties
-  full?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       style={{
-        ...SOFT,
-        padding: '9px 18px',
-        fontSize: 12,
-        width: full ? '100%' : undefined,
+        background: 'transparent',
+        border: 'none',
+        color: 'var(--bronze)',
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: 'pointer',
+        padding: 0,
         ...style,
       }}
     >
@@ -186,9 +175,9 @@ export function SoftButton({
 }
 
 // ---------------------------------------------------------------------
-// Tags e kickers
+// Tags
 // ---------------------------------------------------------------------
-export type TagKind = 'free' | 'paid' | 'soon' | 'unlocked' | 'draft'
+export type TagKind = 'free' | 'paid' | 'soon' | 'unlocked' | 'draft' | 'skill'
 
 export function tagFor(kind: TagKind): { label: string; bg: string; fg: string } {
   switch (kind) {
@@ -197,56 +186,74 @@ export function tagFor(kind: TagKind): { label: string; bg: string; fg: string }
     case 'unlocked':
       return { label: 'LIBERADO', bg: 'var(--oksoft)', fg: 'var(--ok)' }
     case 'paid':
-      return { label: 'PAGO', bg: 'var(--psoft)', fg: 'var(--p2)' }
+      return { label: 'PREMIUM', bg: '#f3eee3', fg: 'var(--bronze)' }
     case 'soon':
-      return { label: 'EM BREVE', bg: 'var(--sf2)', fg: 'var(--tx3)' }
+      return { label: 'EM BREVE', bg: 'var(--surface2)', fg: 'var(--tx2)' }
     case 'draft':
-      return { label: 'RASCUNHO', bg: 'var(--sf2)', fg: 'var(--tx3)' }
+      return { label: 'RASCUNHO', bg: 'var(--surface2)', fg: 'var(--tx2)' }
+    case 'skill':
+      return { label: '', bg: 'var(--surface2)', fg: 'var(--tx2)' }
   }
 }
 
-export function Tag({ kind, style }: { kind: TagKind; style?: CSSProperties }) {
+export function Tag({
+  kind,
+  label,
+  style,
+}: {
+  kind: TagKind
+  label?: string
+  style?: CSSProperties
+}) {
   const t = tagFor(kind)
   return (
     <span
       style={{
-        fontSize: 9.5,
+        fontSize: 10,
         fontWeight: 700,
-        letterSpacing: '.08em',
-        padding: '3px 9px',
-        borderRadius: 999,
+        letterSpacing: '0.08em',
+        padding: '4px 9px',
+        borderRadius: 6,
         background: t.bg,
         color: t.fg,
-        border: '1px solid var(--line)',
         whiteSpace: 'nowrap',
         ...style,
       }}
     >
-      {t.label}
+      {label ?? t.label}
+    </span>
+  )
+}
+
+/** Pílula de competência — "Estratégia", "Liderança", "AI Literacy". */
+export function SkillChip({ children }: { children: ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 500,
+        padding: '5px 11px',
+        borderRadius: 999,
+        background: 'var(--surface2)',
+        border: '0.8px solid var(--line)',
+        color: 'var(--tx2)',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
     </span>
   )
 }
 
 export function Kicker({
   children,
-  color = 'var(--tx3)',
   style,
 }: {
   children: ReactNode
-  color?: string
   style?: CSSProperties
 }) {
   return (
-    <div
-      style={{
-        fontSize: 10.5,
-        letterSpacing: '.18em',
-        textTransform: 'uppercase',
-        fontWeight: 700,
-        color,
-        ...style,
-      }}
-    >
+    <div className="k-kicker" style={style}>
       {children}
     </div>
   )
@@ -254,7 +261,7 @@ export function Kicker({
 
 export function Avatar({
   name,
-  size = 30,
+  size = 32,
   fontSize,
 }: {
   name: string
@@ -268,15 +275,15 @@ export function Avatar({
         width: size,
         height: size,
         borderRadius: '50%',
-        background: 'linear-gradient(150deg,#2C1C40,#171021)',
-        border: '1px solid var(--line2)',
+        background: 'var(--imperial)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: 'Raleway,sans-serif',
-        fontWeight: 700,
-        fontSize: fontSize ?? Math.round(size * 0.34),
-        color: 'var(--p2)',
+        fontFamily: 'var(--font-sans)',
+        fontWeight: 600,
+        fontSize: fontSize ?? Math.round(size * 0.36),
+        color: 'var(--bg)',
+        letterSpacing: '0.02em',
       }}
     >
       {name}
@@ -284,23 +291,22 @@ export function Avatar({
   )
 }
 
-/** Miniatura padrão do protótipo: gradiente + hachura + ícone de área. */
+/** Miniatura de conteúdo. Sem imagem, cai num tom de pedra sóbrio. */
 export function CourseThumb({
-  iconPath,
   imageUrl,
   width,
   height,
-  radius = 14,
-  label,
+  radius = 12,
+  badge,
   locked,
   className,
 }: {
-  iconPath: string
+  iconPath?: string
   imageUrl?: string | null
   width?: number | string
   height: number | string
   radius?: number
-  label?: string
+  badge?: string
   locked?: boolean
   className?: string
 }) {
@@ -314,64 +320,42 @@ export function CourseThumb({
         borderRadius: radius,
         background: imageUrl
           ? `center/cover no-repeat url(${JSON.stringify(imageUrl)})`
-          : 'linear-gradient(135deg,var(--psoft) 0%,var(--bg2) 62%)',
-        border: '1px solid var(--line)',
+          : 'linear-gradient(145deg,#e8e1d6,#d1cbc2)',
         position: 'relative',
         overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'flex-end',
-        padding: label ? 15 : 0,
       }}
     >
-      {!imageUrl && (
-        <>
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage:
-                'repeating-linear-gradient(115deg,var(--line) 0 1px,transparent 1px 20px)',
-              opacity: 0.7,
-            }}
-          />
-          <Icon
-            d={iconPath}
-            size={88}
-            stroke="var(--p2)"
-            width={1.1}
-            style={{ position: 'absolute', right: -14, bottom: -18, opacity: 0.22 }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              left: 13,
-              top: 12,
-              width: 18,
-              height: 1,
-              background: 'var(--p2)',
-              opacity: 0.7,
-            }}
-          />
-        </>
-      )}
-      {label && (
+      {badge && (
         <span
           style={{
-            position: 'relative',
+            position: 'absolute',
+            left: 10,
+            top: 10,
             fontSize: 9.5,
-            letterSpacing: '.16em',
-            textTransform: 'uppercase',
             fontWeight: 700,
-            color: imageUrl ? '#fff' : 'var(--tx2)',
-            textShadow: imageUrl ? '0 1px 6px rgba(0,0,0,.6)' : undefined,
+            letterSpacing: '0.1em',
+            padding: '4px 9px',
+            borderRadius: 6,
+            background: 'rgba(255,255,255,.92)',
+            color: 'var(--tx)',
           }}
         >
-          {label}
+          {badge}
         </span>
       )}
       {locked && (
-        <div style={{ position: 'absolute', right: 13, top: 12 }}>
-          <LockIcon />
+        <div
+          style={{
+            position: 'absolute',
+            right: 10,
+            top: 10,
+            background: 'rgba(255,255,255,.92)',
+            borderRadius: 6,
+            padding: 5,
+            display: 'flex',
+          }}
+        >
+          <LockIcon size={13} color="var(--tx2)" />
         </div>
       )}
     </div>
@@ -382,10 +366,12 @@ export function ProgressBar({
   percent,
   height = 5,
   maxWidth,
+  color = 'var(--bronze)',
 }: {
   percent: number
   height?: number
   maxWidth?: number | string
+  color?: string
 }) {
   return (
     <div
@@ -393,7 +379,7 @@ export function ProgressBar({
         flex: 1,
         maxWidth,
         height,
-        borderRadius: 9,
+        borderRadius: 999,
         background: 'var(--line)',
         overflow: 'hidden',
       }}
@@ -401,8 +387,8 @@ export function ProgressBar({
       <div
         style={{
           height: '100%',
-          borderRadius: 9,
-          background: 'linear-gradient(90deg,var(--p),var(--p2))',
+          borderRadius: 999,
+          background: color,
           width: `${Math.max(0, Math.min(100, percent))}%`,
           transition: 'width .3s ease',
         }}
@@ -417,7 +403,7 @@ export function ProgressBar({
 export function Skeleton({
   height,
   width = '100%',
-  radius = 14,
+  radius = 16,
   style,
 }: {
   height: number | string
@@ -430,12 +416,12 @@ export function Skeleton({
 
 export function PageLoading() {
   return (
-    <div style={{ padding: '64px 56px 100px', maxWidth: 1080 }} className="k-page">
-      <Skeleton height={34} width="60%" style={{ marginBottom: 14 }} />
-      <Skeleton height={18} width="42%" style={{ marginBottom: 52 }} />
-      <Skeleton height={150} radius={22} style={{ marginBottom: 24 }} />
-      <Skeleton height={110} radius={20} style={{ marginBottom: 14 }} />
-      <Skeleton height={110} radius={20} />
+    <div style={{ padding: '56px 56px 100px', maxWidth: 1180 }} className="k-page">
+      <Skeleton height={52} width="55%" style={{ marginBottom: 16 }} />
+      <Skeleton height={20} width="40%" style={{ marginBottom: 48 }} />
+      <Skeleton height={180} style={{ marginBottom: 20 }} />
+      <Skeleton height={130} style={{ marginBottom: 14 }} />
+      <Skeleton height={130} />
     </div>
   )
 }
@@ -451,26 +437,13 @@ export function ErrorState({
 }) {
   return (
     <div
-      style={{
-        border: '1px solid var(--line2)',
-        background: 'var(--sf)',
-        borderRadius: 20,
-        padding: 32,
-        textAlign: 'center',
-        maxWidth: 520,
-      }}
+      className="k-card"
+      style={{ padding: 32, textAlign: 'center', maxWidth: 520 }}
     >
-      <div
-        style={{
-          fontFamily: 'Raleway,sans-serif',
-          fontWeight: 700,
-          fontSize: 17,
-          marginBottom: 8,
-        }}
-      >
+      <div className="k-display k-h3" style={{ marginBottom: 10 }}>
         {title}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--tx2)', marginBottom: onRetry ? 20 : 0 }}>
+      <div style={{ fontSize: 14, color: 'var(--tx2)', marginBottom: onRetry ? 22 : 0 }}>
         {message}
       </div>
       {onRetry && <GhostButton onClick={onRetry}>Tentar de novo</GhostButton>}
@@ -483,22 +456,15 @@ export function EmptyState({ title, message }: { title: string; message: string 
     <div
       style={{
         border: '1px dashed var(--line2)',
-        borderRadius: 20,
+        borderRadius: 'var(--r-card)',
         padding: 40,
         textAlign: 'center',
       }}
     >
-      <div
-        style={{
-          fontFamily: 'Raleway,sans-serif',
-          fontWeight: 700,
-          fontSize: 16,
-          marginBottom: 8,
-        }}
-      >
+      <div className="k-display k-h3" style={{ marginBottom: 10 }}>
         {title}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--tx3)' }}>{message}</div>
+      <div style={{ fontSize: 14, color: 'var(--tx2)' }}>{message}</div>
     </div>
   )
 }
@@ -521,7 +487,7 @@ export function Spinner({ size = 15, color = 'currentColor' }: { size?: number; 
 }
 
 // ---------------------------------------------------------------------
-// Modal — mesmo tratamento visual dos overlays do protótipo
+// Modal
 // ---------------------------------------------------------------------
 export function Modal({
   children,
@@ -539,7 +505,7 @@ export function Modal({
         position: 'fixed',
         inset: 0,
         zIndex: 80,
-        background: 'rgba(6,3,11,.74)',
+        background: 'rgba(14,10,20,.5)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
@@ -554,11 +520,11 @@ export function Modal({
           width: '100%',
           maxWidth,
           margin: 'auto',
-          background: 'var(--sf)',
-          border: '1px solid var(--line2)',
-          borderRadius: 26,
-          padding: 34,
-          boxShadow: 'var(--shadow)',
+          background: 'var(--surface)',
+          border: '0.8px solid var(--line)',
+          borderRadius: 20,
+          padding: 36,
+          boxShadow: '0 24px 60px rgba(14,10,20,.18)',
         }}
       >
         {children}
@@ -568,16 +534,16 @@ export function Modal({
 }
 
 // ---------------------------------------------------------------------
-// Formulário (usado no Admin e no Perfil)
+// Formulário
 // ---------------------------------------------------------------------
 export const inputStyle: CSSProperties = {
   width: '100%',
-  background: 'var(--sf)',
-  border: '1px solid var(--line)',
-  borderRadius: 14,
-  padding: '13px 16px',
+  background: 'var(--surface)',
+  border: '1px solid var(--line2)',
+  borderRadius: 'var(--r-control)',
+  padding: '12px 14px',
   color: 'var(--tx)',
-  fontSize: 14,
+  fontSize: 15,
   outline: 'none',
 }
 
@@ -596,20 +562,16 @@ export function Field({
     <label style={{ display: 'block', ...style }}>
       <div
         style={{
-          fontSize: 11,
-          letterSpacing: '.1em',
-          textTransform: 'uppercase',
-          fontWeight: 700,
-          color: 'var(--tx3)',
-          marginBottom: 8,
+          fontSize: 13,
+          fontWeight: 500,
+          color: 'var(--tx)',
+          marginBottom: 7,
         }}
       >
         {label}
       </div>
       {children}
-      {hint && (
-        <div style={{ fontSize: 11.5, color: 'var(--tx3)', marginTop: 6 }}>{hint}</div>
-      )}
+      {hint && <div style={{ fontSize: 12.5, color: 'var(--tx2)', marginTop: 6 }}>{hint}</div>}
     </label>
   )
 }
@@ -622,9 +584,9 @@ export function Banner({
   children: ReactNode
 }) {
   const map = {
-    error: { bg: 'var(--dangersoft)', fg: 'var(--danger)', bd: 'var(--danger)' },
-    ok: { bg: 'var(--oksoft)', fg: 'var(--ok)', bd: 'var(--ok)' },
-    info: { bg: 'var(--psoft)', fg: 'var(--p2)', bd: 'var(--pline)' },
+    error: { bg: 'var(--dangersoft)', fg: 'var(--danger)', bd: '#e8cdc9' },
+    ok: { bg: 'var(--oksoft)', fg: 'var(--ok)', bd: '#c9e0d4' },
+    info: { bg: '#f3eee3', fg: 'var(--bronze)', bd: '#e5dcc9' },
   }[kind]
 
   return (
@@ -633,9 +595,9 @@ export function Banner({
         background: map.bg,
         border: `1px solid ${map.bd}`,
         color: map.fg,
-        borderRadius: 14,
+        borderRadius: 'var(--r-control)',
         padding: '12px 16px',
-        fontSize: 13,
+        fontSize: 14,
         lineHeight: 1.5,
       }}
     >

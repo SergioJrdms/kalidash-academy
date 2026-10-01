@@ -13,7 +13,7 @@ export default function AdminLayout() {
       <header
         style={{
           borderBottom: '1px solid var(--line)',
-          background: 'var(--bg2)',
+          background: 'var(--surface)',
           padding: '0 28px',
           display: 'flex',
           alignItems: 'center',
@@ -28,14 +28,14 @@ export default function AdminLayout() {
         <Link
           to="/admin"
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 800,
             fontSize: 12.5,
             letterSpacing: '.05em',
             color: 'var(--tx)',
           }}
         >
-          KALIDASH<span style={{ color: 'var(--p2)' }}> ADMIN</span>
+          KALIDASH<span style={{ color: 'var(--imperial)' }}> ADMIN</span>
         </Link>
 
         <nav style={{ display: 'flex', gap: 4 }}>
@@ -49,7 +49,7 @@ export default function AdminLayout() {
                 fontSize: 13,
                 fontWeight: 600,
                 color: isActive ? 'var(--tx)' : 'var(--tx2)',
-                background: isActive ? 'var(--psoft)' : 'transparent',
+                background: isActive ? '#f3eee3' : 'transparent',
               })}
             >
               {l.label}

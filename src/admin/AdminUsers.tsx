@@ -80,7 +80,7 @@ export default function AdminUsers() {
       >
         <h1
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 26,
             letterSpacing: '-.02em',
@@ -122,7 +122,7 @@ export default function AdminUsers() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 16,
-                  background: 'var(--sf)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--line)',
                   borderRadius: 16,
                   padding: '14px 18px',
@@ -150,8 +150,8 @@ export default function AdminUsers() {
                           letterSpacing: '.08em',
                           padding: '3px 9px',
                           borderRadius: 999,
-                          background: 'var(--psoft)',
-                          color: 'var(--p2)',
+                          background: '#f3eee3',
+                          color: 'var(--imperial)',
                           border: '1px solid var(--line)',
                         }}
                       >
@@ -172,9 +172,9 @@ export default function AdminUsers() {
                   onClick={() => void setAccess(u, isPaid ? 'free' : 'paid')}
                   disabled={busyId === u.id}
                   style={{
-                    background: isPaid ? 'transparent' : 'var(--psoft)',
-                    border: `1px solid ${isPaid ? 'var(--line2)' : 'var(--pline)'}`,
-                    color: isPaid ? 'var(--tx2)' : 'var(--p2)',
+                    background: isPaid ? 'transparent' : '#f3eee3',
+                    border: `1px solid ${isPaid ? 'var(--line2)' : 'var(--line2)'}`,
+                    color: isPaid ? 'var(--tx2)' : 'var(--imperial)',
                     borderRadius: 999,
                     padding: '9px 18px',
                     fontSize: 12.5,

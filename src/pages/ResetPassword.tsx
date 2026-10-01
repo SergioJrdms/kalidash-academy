@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { applyTheme, getStoredTheme } from '../lib/theme'
 import { Banner, inputStyle, Spinner } from '../components/ui'
 
 /** Destino do link enviado por resetPasswordForEmail. */
@@ -14,7 +13,6 @@ export default function ResetPassword() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    applyTheme(getStoredTheme())
     // O link do e-mail cria uma sessão de recuperação.
     supabase.auth.getSession().then(({ data }) => {
       setReady(Boolean(data.session))
@@ -56,7 +54,7 @@ export default function ResetPassword() {
       <form onSubmit={submit} className="k-fade" style={{ width: '100%', maxWidth: 400 }}>
         <h1
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 28,
             letterSpacing: '-.025em',
@@ -110,7 +108,7 @@ export default function ResetPassword() {
           disabled={busy || !ready}
           style={{
             width: '100%',
-            background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+            background: 'var(--imperial)',
             border: 'none',
             color: '#fff',
             borderRadius: 999,
@@ -118,7 +116,7 @@ export default function ResetPassword() {
             fontSize: 14,
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: 'var(--glow)',
+            boxShadow: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

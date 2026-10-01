@@ -100,7 +100,7 @@ export default function Eventos() {
       <h1
         className="k-h1"
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 31,
           lineHeight: 1.16,
@@ -136,7 +136,7 @@ export default function Eventos() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 24,
-                  background: 'var(--sf)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--line)',
                   borderRadius: 20,
                   padding: '22px 24px',
@@ -147,15 +147,15 @@ export default function Eventos() {
                     flex: 'none',
                     width: 66,
                     textAlign: 'center',
-                    border: `1px solid ${free ? 'var(--pline)' : 'var(--line)'}`,
-                    background: free ? 'var(--psoft)' : 'var(--sf2)',
+                    border: `1px solid ${free ? 'var(--line2)' : 'var(--line)'}`,
+                    background: free ? '#f3eee3' : 'var(--surface2)',
                     borderRadius: 14,
                     padding: '11px 0',
                   }}
                 >
                   <div
                     style={{
-                      fontFamily: 'Raleway,sans-serif',
+                      fontFamily: 'var(--font-display)',
                       fontWeight: 800,
                       fontSize: 20,
                       lineHeight: 1,
@@ -201,7 +201,7 @@ export default function Eventos() {
                   </div>
                   <div
                     style={{
-                      fontFamily: 'Raleway,sans-serif',
+                      fontFamily: 'var(--font-display)',
                       fontWeight: 700,
                       fontSize: 17,
                       lineHeight: 1.3,
@@ -223,7 +223,7 @@ export default function Eventos() {
                   style={{
                     flex: 'none',
                     background: canJoin
-                      ? 'linear-gradient(180deg,#8a5cff,var(--p))'
+                      ? 'var(--imperial)'
                       : 'transparent',
                     border: `1px solid ${canJoin ? 'transparent' : 'var(--line2)'}`,
                     color: canJoin ? '#fff' : 'var(--tx2)',
@@ -233,7 +233,7 @@ export default function Eventos() {
                     fontWeight: 600,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
-                    boxShadow: canJoin ? 'var(--glow)' : undefined,
+                    boxShadow: canJoin ? 'none' : undefined,
                   }}
                 >
                   {canJoin ? 'Participar' : 'Conhecer'}
@@ -272,11 +272,11 @@ export default function Eventos() {
                   color: 'var(--tx)',
                 }}
               >
-                <Icon d={NAV_ICON.play} size={14} fill="var(--p2)" />
+                <Icon d={NAV_ICON.play} size={14} fill="var(--imperial)" />
                 <span
                   style={{
                     flex: 1,
-                    fontFamily: 'Raleway,sans-serif',
+                    fontFamily: 'var(--font-display)',
                     fontWeight: 600,
                     fontSize: 14.5,
                     minWidth: 0,

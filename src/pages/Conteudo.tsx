@@ -125,7 +125,7 @@ export default function Conteudo() {
             letterSpacing: '.1em',
             padding: '4px 11px',
             borderRadius: 999,
-            background: 'var(--sf2)',
+            background: 'var(--surface2)',
             border: '1px solid var(--line)',
             color: 'var(--tx2)',
           }}
@@ -138,7 +138,7 @@ export default function Conteudo() {
       <h1
         className="k-h1"
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 38,
           lineHeight: 1.12,
@@ -204,8 +204,8 @@ export default function Conteudo() {
         <div
           className="k-stack-mobile"
           style={{
-            border: '1px solid var(--pline)',
-            background: 'linear-gradient(125deg,var(--psoft),transparent 72%)',
+            border: '1px solid var(--line2)',
+            background: 'linear-gradient(125deg,#f3eee3,transparent 72%)',
             borderRadius: 22,
             padding: 28,
             marginBottom: 44,
@@ -217,7 +217,7 @@ export default function Conteudo() {
           <div style={{ flex: 1 }}>
             <div
               style={{
-                fontFamily: 'Raleway,sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontWeight: 700,
                 fontSize: 19,
                 lineHeight: 1.3,
@@ -272,7 +272,7 @@ export default function Conteudo() {
           <div style={{ flex: 1 }}>
             <div
               style={{
-                fontFamily: 'Raleway,sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontWeight: 700,
                 fontSize: 17,
                 lineHeight: 1.3,
@@ -317,10 +317,10 @@ export default function Conteudo() {
                   >
                     <span
                       style={{
-                        fontFamily: 'Raleway,sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontWeight: 800,
                         fontSize: 13,
-                        color: 'var(--p2)',
+                        color: 'var(--imperial)',
                         letterSpacing: '.06em',
                       }}
                     >
@@ -328,7 +328,7 @@ export default function Conteudo() {
                     </span>
                     <span
                       style={{
-                        fontFamily: 'Raleway,sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontWeight: 700,
                         fontSize: 18,
                         letterSpacing: '-.01em',
@@ -376,7 +376,7 @@ export default function Conteudo() {
                               width: 17,
                               height: 17,
                               borderRadius: '50%',
-                              border: `1px solid ${done ? 'var(--ok)' : unlocked ? 'var(--p2)' : 'var(--line2)'}`,
+                              border: `1px solid ${done ? 'var(--ok)' : unlocked ? 'var(--imperial)' : 'var(--line2)'}`,
                               background: done ? 'var(--oksoft)' : 'transparent',
                               display: 'flex',
                               alignItems: 'center',

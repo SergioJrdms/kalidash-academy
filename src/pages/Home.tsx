@@ -138,7 +138,7 @@ export default function Home() {
         <h1
           className="k-h1"
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 34,
             lineHeight: 1.16,
@@ -174,8 +174,8 @@ export default function Home() {
               display: 'flex',
               gap: 26,
               alignItems: 'center',
-              background: 'var(--sf)',
-              border: '1px solid var(--pline)',
+              background: 'var(--surface)',
+              border: '1px solid var(--line2)',
               borderRadius: 22,
               padding: '26px 28px',
               color: 'var(--tx)',
@@ -189,7 +189,7 @@ export default function Home() {
                 width: 132,
                 height: 88,
                 borderRadius: 14,
-                background: 'linear-gradient(145deg,var(--psoft),var(--bg2))',
+                background: 'linear-gradient(145deg,#f3eee3,var(--surface))',
                 border: '1px solid var(--line)',
                 display: 'flex',
                 alignItems: 'center',
@@ -207,7 +207,7 @@ export default function Home() {
                   opacity: 0.5,
                 }}
               />
-              <Icon d={NAV_ICON.play} size={17} fill="var(--p2)" style={{ position: 'relative' }} />
+              <Icon d={NAV_ICON.play} size={17} fill="var(--imperial)" style={{ position: 'relative' }} />
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -225,7 +225,7 @@ export default function Home() {
               </div>
               <div
                 style={{
-                  fontFamily: 'Raleway,sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontWeight: 700,
                   fontSize: 21,
                   lineHeight: 1.26,
@@ -245,13 +245,13 @@ export default function Home() {
             <div
               style={{
                 flex: 'none',
-                background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+                background: 'var(--imperial)',
                 color: '#fff',
                 borderRadius: 999,
                 padding: '13px 28px',
                 fontSize: 13.5,
                 fontWeight: 600,
-                boxShadow: 'var(--glow)',
+                boxShadow: 'none',
                 textAlign: 'center',
               }}
             >
@@ -271,7 +271,7 @@ export default function Home() {
             <Icon
               d={NAV_ICON.arrow}
               size={15}
-              stroke="var(--p2)"
+              stroke="var(--imperial)"
               width={2}
               style={{ marginTop: 3 }}
             />
@@ -293,7 +293,7 @@ export default function Home() {
       {/* ---------- Comece aqui ---------- */}
       {!hasProgress && startHere && (
         <div style={{ marginBottom: 56 }}>
-          <Kicker color="var(--p2)" style={{ marginBottom: 18 }}>
+          <Kicker style={{ marginBottom: 18 }}>
             Comece aqui
           </Kicker>
           <Link
@@ -303,7 +303,7 @@ export default function Home() {
               width: '100%',
               textAlign: 'left',
               background: 'linear-gradient(135deg,#1F1330,#150E20 68%)',
-              border: '1px solid var(--pline)',
+              border: '1px solid var(--line2)',
               borderRadius: 24,
               padding: 0,
               overflow: 'hidden',
@@ -340,7 +340,7 @@ export default function Home() {
                   top: -60,
                   width: 210,
                   height: 210,
-                  border: '1px solid var(--pline)',
+                  border: '1px solid var(--line2)',
                   borderRadius: '50%',
                 }}
               />
@@ -364,7 +364,7 @@ export default function Home() {
               <div
                 style={{
                   position: 'relative',
-                  fontFamily: 'Raleway,sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontWeight: 800,
                   fontSize: 13,
                   letterSpacing: '.14em',
@@ -417,7 +417,7 @@ export default function Home() {
               </div>
               <div
                 style={{
-                  fontFamily: 'Raleway,sans-serif',
+                  fontFamily: 'var(--font-display)',
                   fontWeight: 700,
                   fontSize: 25,
                   lineHeight: 1.22,
@@ -444,13 +444,13 @@ export default function Home() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <div
                   style={{
-                    background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+                    background: 'var(--imperial)',
                     color: '#fff',
                     borderRadius: 999,
                     padding: '13px 30px',
                     fontSize: 13.5,
                     fontWeight: 600,
-                    boxShadow: 'var(--glow)',
+                    boxShadow: 'none',
                   }}
                 >
                   Começar
@@ -466,7 +466,7 @@ export default function Home() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontFamily: 'Raleway,sans-serif',
+                      fontFamily: 'var(--font-display)',
                       fontWeight: 700,
                       fontSize: 9.5,
                       color: '#B061FF',
@@ -509,7 +509,7 @@ export default function Home() {
             </Kicker>
             <Link
               to="/conteudos"
-              style={{ color: 'var(--p2)', fontSize: 12.5, fontWeight: 600 }}
+              style={{ color: 'var(--imperial)', fontSize: 12.5, fontWeight: 600 }}
             >
               Ver conteúdos
             </Link>
@@ -539,7 +539,7 @@ export default function Home() {
                     <Icon
                       d={areaIcon(c.area)}
                       size={16}
-                      stroke="var(--p2)"
+                      stroke="var(--imperial)"
                       width={1.5}
                       style={{ opacity: 0.75 }}
                     />
@@ -585,7 +585,7 @@ export default function Home() {
                   className="k-hoverable k-lift"
                   style={{
                     textAlign: 'left',
-                    background: 'var(--sf)',
+                    background: 'var(--surface)',
                     border: '1px solid var(--line)',
                     borderRadius: 20,
                     overflow: 'hidden',
@@ -598,7 +598,7 @@ export default function Home() {
                     imageUrl={c.thumbnail_url}
                     height={104}
                     radius={0}
-                    label={c.area}
+                    badge={c.area}
                     locked={c.status !== 'coming_soon' && !c.hasFreeLesson && !isPaid}
                   />
                   <div style={{ padding: '20px 22px 22px' }}>
@@ -607,7 +607,7 @@ export default function Home() {
                     </div>
                     <div
                       style={{
-                        fontFamily: 'Raleway,sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontWeight: 700,
                         fontSize: 16,
                         lineHeight: 1.3,
@@ -645,14 +645,14 @@ export default function Home() {
               width: 62,
               textAlign: 'center',
               border: '1px solid var(--line)',
-              background: 'var(--sf)',
+              background: 'var(--surface)',
               borderRadius: 14,
               padding: '11px 0',
             }}
           >
             <div
               style={{
-                fontFamily: 'Raleway,sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontWeight: 800,
                 fontSize: 19,
                 lineHeight: 1,
@@ -678,7 +678,7 @@ export default function Home() {
             </Kicker>
             <div
               style={{
-                fontFamily: 'Raleway,sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontWeight: 700,
                 fontSize: 16,
                 lineHeight: 1.32,

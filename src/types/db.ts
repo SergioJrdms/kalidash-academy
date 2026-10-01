@@ -8,20 +8,28 @@ export type VideoStatus = 'empty' | 'uploading' | 'processing' | 'ready' | 'erro
 export type EventStatus = 'draft' | 'published'
 
 export const AREAS = [
-  'Gestão',
+  'Liderança',
+  'Operações',
+  'Tecnologia',
   'Financeiro',
   'RH',
-  'Marketing',
   'Comercial',
-  'Operações',
+  'Marketing',
+  'Jurídico',
 ] as const
 
 export const GOALS = [
-  'Reduzir trabalho manual',
-  'Automatizar processos',
-  'Usar IA melhor',
-  'Melhorar decisões',
-  'Desenvolver minha equipe',
+  { value: 'Reduzir trabalho manual', hint: 'Tirar da mão o que se repete', icon: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2' },
+  { value: 'Automatizar processos', hint: 'Fluxos que rodam sozinhos', icon: 'M18 8a3 3 0 100-6 3 3 0 000 6zM6 15a3 3 0 100-6 3 3 0 000 6zM18 22a3 3 0 100-6 3 3 0 000 6z' },
+  { value: 'Usar IA melhor', hint: 'Mais proveito das ferramentas', icon: 'M12 3l1.8 5 5 1.8-5 1.8L12 16.6l-1.8-5-5-1.8 5-1.8z' },
+  { value: 'Melhorar decisões', hint: 'Dado no lugar de achismo', icon: 'M4 20V10M10 20V4M16 20v-6M22 20H2' },
+  { value: 'Desenvolver minha equipe', hint: 'Levar o time junto', icon: 'M9 11a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5' },
+] as const
+
+export const LEVELS = [
+  { value: 'Iniciante', hint: 'Estou começando agora' },
+  { value: 'Intermediário', hint: 'Já uso, quero aprofundar' },
+  { value: 'Avançado', hint: 'Lidero iniciativas de IA' },
 ] as const
 
 export type Profile = {
@@ -31,6 +39,7 @@ export type Profile = {
   company: string | null
   area: string | null
   goal: string | null
+  level: string | null
   role: UserRole
   access_level: AccessLevel
   created_at: string

@@ -131,7 +131,7 @@ export default function AdminLessonEdit() {
       >
         <h1
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 24,
             letterSpacing: '-.02em',
@@ -157,7 +157,7 @@ export default function AdminLessonEdit() {
         {/* ---------- básico ---------- */}
         <section
           style={{
-            background: 'var(--sf)',
+            background: 'var(--surface)',
             border: '1px solid var(--line)',
             borderRadius: 20,
             padding: 22,
@@ -222,7 +222,7 @@ export default function AdminLessonEdit() {
         {/* ---------- conteúdo textual ---------- */}
         <section
           style={{
-            background: 'var(--sf)',
+            background: 'var(--surface)',
             border: '1px solid var(--line)',
             borderRadius: 20,
             padding: 22,
@@ -258,7 +258,7 @@ export default function AdminLessonEdit() {
             <div
               className="k-md"
               style={{
-                background: 'var(--bg2)',
+                background: 'var(--surface)',
                 border: '1px solid var(--line)',
                 borderRadius: 14,
                 padding: 20,
@@ -291,8 +291,8 @@ export default function AdminLessonEdit() {
         {/* ---------- aplicação prática ---------- */}
         <section
           style={{
-            background: 'var(--sf)',
-            border: '1px solid var(--pline)',
+            background: 'var(--surface)',
+            border: '1px solid var(--line2)',
             borderRadius: 20,
             padding: 22,
           }}
@@ -303,7 +303,7 @@ export default function AdminLessonEdit() {
               letterSpacing: '.1em',
               textTransform: 'uppercase',
               fontWeight: 700,
-              color: 'var(--p2)',
+              color: 'var(--imperial)',
               marginBottom: 16,
             }}
           >
@@ -367,14 +367,14 @@ export default function AdminLessonEdit() {
                     width: 26,
                     height: 26,
                     borderRadius: 8,
-                    background: 'var(--sf2)',
-                    border: '1px solid var(--pline)',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--line2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: 'var(--p2)',
+                    color: 'var(--imperial)',
                   }}
                 >
                   {i + 1}
@@ -473,7 +473,7 @@ const miniBtn: React.CSSProperties = {
   width: 30,
   height: 30,
   borderRadius: 9,
-  background: 'var(--sf2)',
+  background: 'var(--surface2)',
   border: '1px solid var(--line)',
   color: 'var(--tx2)',
   fontSize: 14,

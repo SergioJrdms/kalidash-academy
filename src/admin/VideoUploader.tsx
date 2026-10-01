@@ -16,8 +16,8 @@ const STATUS_LABEL: Record<VideoStatus, string> = {
 
 const STATUS_COLOR: Record<VideoStatus, string> = {
   empty: 'var(--tx3)',
-  uploading: 'var(--p2)',
-  processing: 'var(--p2)',
+  uploading: 'var(--imperial)',
+  processing: 'var(--imperial)',
   ready: 'var(--ok)',
   error: 'var(--danger)',
 }
@@ -140,7 +140,7 @@ export default function VideoUploader({
   return (
     <div
       style={{
-        background: 'var(--sf)',
+        background: 'var(--surface)',
         border: '1px solid var(--line)',
         borderRadius: 20,
         padding: 22,
@@ -215,7 +215,7 @@ export default function VideoUploader({
           >
             <span style={{ fontWeight: 600 }}>{file?.name}</span>
             <span style={{ color: 'var(--tx3)' }}>{formatFileSize(file?.size)}</span>
-            <span style={{ marginLeft: 'auto', color: 'var(--p2)', fontWeight: 600 }}>
+            <span style={{ marginLeft: 'auto', color: 'var(--imperial)', fontWeight: 600 }}>
               {progress}%
             </span>
           </div>
@@ -231,7 +231,7 @@ export default function VideoUploader({
               style={{
                 height: '100%',
                 width: `${progress}%`,
-                background: 'linear-gradient(90deg,var(--p),var(--p2))',
+                background: 'linear-gradient(90deg,var(--imperial),var(--imperial))',
                 transition: 'width .2s',
               }}
             />

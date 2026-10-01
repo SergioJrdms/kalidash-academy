@@ -1,18 +1,21 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
-import { applyTheme, getStoredTheme } from './lib/theme'
 import { identify, initAnalytics, resetIdentity, trackPageview } from './lib/analytics'
 import AppLayout from './components/AppLayout'
 import { PageLoading, Spinner } from './components/ui'
 
 const Login = lazy(() => import('./pages/Login'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Home = lazy(() => import('./pages/Home'))
-const Conteudos = lazy(() => import('./pages/Conteudos'))
+const Explorar = lazy(() => import('./pages/Explorar'))
 const Conteudo = lazy(() => import('./pages/Conteudo'))
 const Aula = lazy(() => import('./pages/Aula'))
+const Jornada = lazy(() => import('./pages/Jornada'))
+const Aplicar = lazy(() => import('./pages/Aplicar'))
 const Eventos = lazy(() => import('./pages/Eventos'))
+const Comunidade = lazy(() => import('./pages/Comunidade'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 
 const AdminLayout = lazy(() => import('./admin/AdminLayout'))
@@ -34,7 +37,7 @@ function FullScreenLoading() {
         background: 'var(--bg)',
       }}
     >
-      <Spinner size={26} color="var(--p2)" />
+      <Spinner size={26} color="var(--imperial)" />
     </div>
   )
 }
@@ -57,18 +60,6 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function ThemeBoot() {
-  useEffect(() => {
-    applyTheme(getStoredTheme())
-  }, [])
-  return null
-}
-
-/**
- * Liga o PostHog ao ciclo de vida do app: identifica quando a sessão
- * aparece, esquece no logout e registra pageview a cada troca de rota
- * (o React Router não recarrega a página, então o automático não serve).
- */
 function AnalyticsBoot() {
   const { session, profile } = useAuth()
   const location = useLocation()
@@ -102,12 +93,19 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ThemeBoot />
         <AnalyticsBoot />
         <Suspense fallback={<FullScreenLoading />}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/redefinir-senha" element={<ResetPassword />} />
+            <Route
+              path="/onboarding"
+              element={
+                <RequireAuth>
+                  <Onboarding />
+                </RequireAuth>
+              }
+            />
 
             {/* ---------- aluno ---------- */}
             <Route
@@ -125,10 +123,15 @@ export default function App() {
                   </Suspense>
                 }
               />
-              <Route path="conteudos" element={<Conteudos />} />
+              <Route path="explorar" element={<Explorar />} />
+              {/* endereço antigo do catálogo */}
+              <Route path="conteudos" element={<Navigate to="/explorar" replace />} />
               <Route path="conteudos/:slug" element={<Conteudo />} />
               <Route path="aula/:lessonId" element={<Aula />} />
+              <Route path="jornada" element={<Jornada />} />
+              <Route path="aplicar" element={<Aplicar />} />
               <Route path="eventos" element={<Eventos />} />
+              <Route path="comunidade" element={<Comunidade />} />
               <Route path="perfil" element={<Perfil />} />
             </Route>
 

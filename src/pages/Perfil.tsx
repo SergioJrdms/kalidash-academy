@@ -48,7 +48,7 @@ export default function Perfil() {
       <h1
         className="k-h1"
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 31,
           lineHeight: 1.16,
@@ -66,15 +66,15 @@ export default function Perfil() {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: 'var(--sf2)',
+            background: 'var(--surface2)',
             border: '1px solid var(--line2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 19,
-            color: 'var(--p2)',
+            color: 'var(--imperial)',
           }}
         >
           {initials(profile?.full_name ?? 'U')}
@@ -82,7 +82,7 @@ export default function Perfil() {
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              fontFamily: 'Raleway,sans-serif',
+              fontFamily: 'var(--font-display)',
               fontWeight: 700,
               fontSize: 22,
               letterSpacing: '-.015em',
@@ -103,7 +103,7 @@ export default function Perfil() {
             marginLeft: 'auto',
             background: 'transparent',
             border: 'none',
-            color: 'var(--p2)',
+            color: 'var(--imperial)',
             fontSize: 12.5,
             fontWeight: 600,
             cursor: 'pointer',
@@ -128,7 +128,7 @@ export default function Perfil() {
         <div
           style={{
             border: '1px solid var(--line)',
-            background: 'var(--sf)',
+            background: 'var(--surface)',
             borderRadius: 18,
             padding: 22,
             marginBottom: 32,
@@ -154,7 +154,7 @@ export default function Perfil() {
               onClick={() => void save()}
               disabled={busy}
               style={{
-                background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+                background: 'var(--imperial)',
                 border: 'none',
                 color: '#fff',
                 borderRadius: 999,
@@ -162,7 +162,7 @@ export default function Perfil() {
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: 'var(--glow)',
+                boxShadow: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 9,
@@ -194,7 +194,7 @@ export default function Perfil() {
               display: 'flex',
               alignItems: 'center',
               gap: 20,
-              background: 'var(--sf)',
+              background: 'var(--surface)',
               padding: '18px 22px',
             }}
           >
@@ -210,7 +210,7 @@ export default function Perfil() {
                 flex: 'none',
                 background: 'transparent',
                 border: 'none',
-                color: 'var(--p2)',
+                color: 'var(--imperial)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -226,7 +226,7 @@ export default function Perfil() {
             display: 'flex',
             alignItems: 'center',
             gap: 20,
-            background: 'var(--sf)',
+            background: 'var(--surface)',
             padding: '18px 22px',
           }}
         >
@@ -275,7 +275,7 @@ export default function Perfil() {
         <div style={{ flex: 1 }}>
           <div
             style={{
-              fontFamily: 'Raleway,sans-serif',
+              fontFamily: 'var(--font-display)',
               fontWeight: 700,
               fontSize: 16.5,
               marginBottom: 6,

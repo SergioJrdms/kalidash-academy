@@ -222,7 +222,7 @@ export default function Aula() {
       <h1
         className="k-h1"
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 28,
           lineHeight: 1.2,
@@ -313,8 +313,8 @@ export default function Aula() {
         <div
           className="k-stack-mobile"
           style={{
-            border: '1px solid var(--pline)',
-            background: 'linear-gradient(125deg,var(--psoft),transparent 72%)',
+            border: '1px solid var(--line2)',
+            background: 'linear-gradient(125deg,#f3eee3,transparent 72%)',
             borderRadius: 22,
             padding: 28,
             marginBottom: 44,
@@ -326,7 +326,7 @@ export default function Aula() {
           <div style={{ flex: 1 }}>
             <div
               style={{
-                fontFamily: 'Raleway,sans-serif',
+                fontFamily: 'var(--font-display)',
                 fontWeight: 700,
                 fontSize: 18,
                 lineHeight: 1.3,
@@ -454,7 +454,7 @@ function NextCard({
         </div>
         <div
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 18,
             lineHeight: 1.3,
@@ -468,13 +468,13 @@ function NextCard({
       <div
         style={{
           flex: 'none',
-          background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+          background: 'var(--imperial)',
           color: '#fff',
           borderRadius: 999,
           padding: '13px 28px',
           fontSize: 13,
           fontWeight: 600,
-          boxShadow: 'var(--glow)',
+          boxShadow: 'none',
           whiteSpace: 'nowrap',
           textAlign: 'center',
         }}
@@ -490,8 +490,8 @@ function NextCard({
     display: 'flex',
     alignItems: 'center',
     gap: 24,
-    background: 'var(--sf)',
-    border: '1px solid var(--pline)',
+    background: 'var(--surface)',
+    border: '1px solid var(--line2)',
     borderRadius: 20,
     padding: '24px 26px',
     cursor: 'pointer',

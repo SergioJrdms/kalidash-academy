@@ -113,7 +113,7 @@ export default function AdminCourses() {
       >
         <h1
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 26,
             letterSpacing: '-.02em',
@@ -156,7 +156,7 @@ export default function AdminCourses() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 18,
-                background: 'var(--sf)',
+                background: 'var(--surface)',
                 border: '1px solid var(--line)',
                 borderRadius: 18,
                 padding: 16,
@@ -171,7 +171,7 @@ export default function AdminCourses() {
                   border: '1px solid var(--line)',
                   background: c.thumbnail_url
                     ? `center/cover no-repeat url(${JSON.stringify(c.thumbnail_url)})`
-                    : 'linear-gradient(135deg,var(--psoft),var(--bg2))',
+                    : 'linear-gradient(135deg,#f3eee3,var(--surface))',
                 }}
               />
 
@@ -196,7 +196,7 @@ export default function AdminCourses() {
                         c.status === 'published'
                           ? 'var(--ok)'
                           : c.status === 'coming_soon'
-                            ? 'var(--p2)'
+                            ? 'var(--imperial)'
                             : 'var(--tx3)',
                       fontWeight: 600,
                     }}

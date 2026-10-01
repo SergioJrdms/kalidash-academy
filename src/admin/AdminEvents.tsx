@@ -114,7 +114,7 @@ export default function AdminEvents() {
       >
         <h1
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 26,
             letterSpacing: '-.02em',
@@ -146,7 +146,7 @@ export default function AdminEvents() {
               <div
                 key={e.id}
                 style={{
-                  background: 'var(--sf)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--line)',
                   borderRadius: 18,
                   padding: 18,

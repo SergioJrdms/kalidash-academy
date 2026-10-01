@@ -23,7 +23,7 @@ function tagKind(c: CatalogCourse, isPaid: boolean): TagKind {
   return isPaid ? 'unlocked' : 'paid'
 }
 
-export default function Conteudos() {
+export default function Explorar() {
   const { profile, isPaid } = useAuth()
   const { courses, loading, error, reload } = useCatalog()
   const [params, setParams] = useSearchParams()
@@ -66,7 +66,7 @@ export default function Conteudos() {
       <h1
         className="k-h1"
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 31,
           lineHeight: 1.16,
@@ -100,7 +100,7 @@ export default function Conteudos() {
             style={{
               background: 'transparent',
               border: 'none',
-              borderBottom: `2px solid ${tab === key ? 'var(--p)' : 'transparent'}`,
+              borderBottom: `2px solid ${tab === key ? 'var(--imperial)' : 'transparent'}`,
               color: tab === key ? 'var(--tx)' : 'var(--tx3)',
               padding: '13px 18px',
               fontSize: 13.5,
@@ -123,8 +123,8 @@ export default function Conteudos() {
                 key={name}
                 onClick={() => setArea(name)}
                 style={{
-                  background: on ? 'var(--psoft)' : 'var(--sf)',
-                  border: `1px solid ${on ? 'var(--pline)' : 'var(--line)'}`,
+                  background: on ? '#f3eee3' : 'var(--surface)',
+                  border: `1px solid ${on ? 'var(--line2)' : 'var(--line)'}`,
                   color: on ? 'var(--tx)' : 'var(--tx2)',
                   borderRadius: 999,
                   padding: '8px 16px',
@@ -171,8 +171,8 @@ export default function Conteudos() {
                   display: 'flex',
                   gap: 24,
                   alignItems: 'center',
-                  background: 'var(--sf)',
-                  border: `1px solid ${c.progress > 0 ? 'var(--pline)' : 'var(--line)'}`,
+                  background: 'var(--surface)',
+                  border: `1px solid ${c.progress > 0 ? 'var(--line2)' : 'var(--line)'}`,
                   borderRadius: 20,
                   padding: '22px 24px',
                   color: 'var(--tx)',
@@ -214,7 +214,7 @@ export default function Conteudos() {
 
                   <div
                     style={{
-                      fontFamily: 'Raleway,sans-serif',
+                      fontFamily: 'var(--font-display)',
                       fontWeight: 700,
                       fontSize: 17.5,
                       lineHeight: 1.28,
@@ -256,7 +256,7 @@ export default function Conteudos() {
                     fontSize: 12.5,
                     fontWeight: 600,
                     color:
-                      owned && c.status !== 'coming_soon' ? 'var(--p2)' : 'var(--tx2)',
+                      owned && c.status !== 'coming_soon' ? 'var(--imperial)' : 'var(--tx2)',
                     whiteSpace: 'nowrap',
                   }}
                 >

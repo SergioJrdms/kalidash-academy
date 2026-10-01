@@ -89,7 +89,7 @@ function Table({
     <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: 16 }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
-          <tr style={{ background: 'var(--sf2)' }}>
+          <tr style={{ background: 'var(--surface2)' }}>
             {head.map((h, i) => (
               <th
                 key={h}
@@ -186,7 +186,7 @@ export default function AdminInsights() {
     <div>
       <h1
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 26,
           letterSpacing: '-.02em',

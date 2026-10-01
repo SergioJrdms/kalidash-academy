@@ -21,12 +21,12 @@ export default function UnlockModal({
 
   return (
     <Modal onClose={onClose} maxWidth={480}>
-      <Kicker color="var(--p2)" style={{ marginBottom: 14 }}>
+      <Kicker style={{ marginBottom: 14 }}>
         Desbloquear acesso
       </Kicker>
       <h3
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 24,
           lineHeight: 1.24,
@@ -56,7 +56,7 @@ export default function UnlockModal({
               height={16}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="var(--p2)"
+              stroke="var(--imperial)"
               strokeWidth={2.2}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -78,13 +78,13 @@ export default function UnlockModal({
             display: 'block',
             textAlign: 'center',
             width: '100%',
-            background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+            background: 'var(--imperial)',
             color: '#fff',
             borderRadius: 999,
             padding: '14px 0',
             fontSize: 13.5,
             fontWeight: 600,
-            boxShadow: 'var(--glow)',
+            boxShadow: 'none',
           }}
         >
           Falar com a Kalidash
@@ -92,8 +92,8 @@ export default function UnlockModal({
       ) : (
         <div
           style={{
-            background: 'var(--psoft)',
-            border: '1px solid var(--pline)',
+            background: '#f3eee3',
+            border: '1px solid var(--line2)',
             borderRadius: 16,
             padding: '16px 18px',
             fontSize: 13,

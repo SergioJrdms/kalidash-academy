@@ -98,7 +98,7 @@ export default function MaterialUploader({ lessonId }: { lessonId: string }) {
   return (
     <div
       style={{
-        background: 'var(--sf)',
+        background: 'var(--surface)',
         border: '1px solid var(--line)',
         borderRadius: 20,
         padding: 22,
@@ -138,7 +138,7 @@ export default function MaterialUploader({ lessonId }: { lessonId: string }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 14,
-                background: 'var(--bg2)',
+                background: 'var(--surface)',
                 border: '1px solid var(--line)',
                 borderRadius: 14,
                 padding: '12px 16px',
@@ -151,14 +151,14 @@ export default function MaterialUploader({ lessonId }: { lessonId: string }) {
                   width: 34,
                   height: 34,
                   borderRadius: 10,
-                  background: 'var(--sf2)',
+                  background: 'var(--surface2)',
                   border: '1px solid var(--line)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 9,
                   fontWeight: 700,
-                  color: 'var(--p2)',
+                  color: 'var(--imperial)',
                 }}
               >
                 {fileExtension(m.file_name)}
@@ -175,7 +175,7 @@ export default function MaterialUploader({ lessonId }: { lessonId: string }) {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: 'var(--p2)',
+                  color: 'var(--imperial)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -239,7 +239,7 @@ export default function MaterialUploader({ lessonId }: { lessonId: string }) {
               cursor: 'pointer',
               fontSize: 13,
               color: file ? 'var(--tx)' : 'var(--tx3)',
-              background: 'var(--sf2)',
+              background: 'var(--surface2)',
             }}
           >
             {file ? `${file.name} · ${formatFileSize(file.size)}` : 'Escolher arquivo'}

@@ -69,7 +69,7 @@ function CenteredMessage({
       )}
       <div
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 15,
           color: '#fff',

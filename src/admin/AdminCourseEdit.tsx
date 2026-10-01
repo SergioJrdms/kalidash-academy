@@ -246,7 +246,7 @@ export default function AdminCourseEdit() {
       >
         <h1
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 24,
             letterSpacing: '-.02em',
@@ -271,7 +271,7 @@ export default function AdminCourseEdit() {
       {/* ---------------- dados do curso ---------------- */}
       <section
         style={{
-          background: 'var(--sf)',
+          background: 'var(--surface)',
           border: '1px solid var(--line)',
           borderRadius: 20,
           padding: 24,
@@ -386,7 +386,7 @@ export default function AdminCourseEdit() {
                 border: '1px solid var(--line)',
                 background: course.thumbnail_url
                   ? `center/cover no-repeat url(${JSON.stringify(course.thumbnail_url)})`
-                  : 'linear-gradient(135deg,var(--psoft),var(--bg2))',
+                  : 'linear-gradient(135deg,#f3eee3,var(--surface))',
                 flex: 'none',
               }}
             />
@@ -440,7 +440,7 @@ export default function AdminCourseEdit() {
       >
         <h2
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 19,
             margin: 0,
@@ -470,7 +470,7 @@ export default function AdminCourseEdit() {
             <section
               key={mod.id}
               style={{
-                background: 'var(--sf)',
+                background: 'var(--surface)',
                 border: '1px solid var(--line)',
                 borderRadius: 20,
                 padding: 20,
@@ -538,7 +538,7 @@ export default function AdminCourseEdit() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 14,
-                      background: 'var(--bg2)',
+                      background: 'var(--surface)',
                       border: '1px solid var(--line)',
                       borderRadius: 14,
                       padding: '12px 16px',
@@ -547,10 +547,10 @@ export default function AdminCourseEdit() {
                   >
                     <span
                       style={{
-                        fontFamily: 'Raleway,sans-serif',
+                        fontFamily: 'var(--font-display)',
                         fontWeight: 700,
                         fontSize: 12,
-                        color: 'var(--p2)',
+                        color: 'var(--imperial)',
                         width: 24,
                       }}
                     >
@@ -569,7 +569,7 @@ export default function AdminCourseEdit() {
                         letterSpacing: '.06em',
                         padding: '3px 9px',
                         borderRadius: 999,
-                        background: l.status === 'published' ? 'var(--oksoft)' : 'var(--sf2)',
+                        background: l.status === 'published' ? 'var(--oksoft)' : 'var(--surface2)',
                         color: l.status === 'published' ? 'var(--ok)' : 'var(--tx3)',
                         border: '1px solid var(--line)',
                       }}
@@ -583,7 +583,7 @@ export default function AdminCourseEdit() {
                         letterSpacing: '.06em',
                         padding: '3px 9px',
                         borderRadius: 999,
-                        background: 'var(--sf2)',
+                        background: 'var(--surface2)',
                         color: 'var(--tx3)',
                         border: '1px solid var(--line)',
                       }}

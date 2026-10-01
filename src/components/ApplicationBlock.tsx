@@ -27,7 +27,7 @@ export default function ApplicationBlock({
   return (
     <div
       style={{
-        border: '1px solid var(--pline)',
+        border: '1px solid var(--line2)',
         background: 'linear-gradient(140deg,rgba(115,67,251,.13),transparent 78%)',
         borderRadius: 24,
         padding: '34px 36px',
@@ -43,21 +43,21 @@ export default function ApplicationBlock({
           top: -70,
           width: 220,
           height: 220,
-          border: '1px solid var(--pline)',
+          border: '1px solid var(--line2)',
           borderRadius: '50%',
           opacity: 0.55,
         }}
       />
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <Icon d={NAV_ICON.spark} size={17} stroke="var(--p2)" width={1.9} />
+          <Icon d={NAV_ICON.spark} size={17} stroke="var(--imperial)" width={1.9} />
           <span
             style={{
               fontSize: 10.5,
               letterSpacing: '.18em',
               textTransform: 'uppercase',
               fontWeight: 700,
-              color: 'var(--p2)',
+              color: 'var(--imperial)',
             }}
           >
             Aplique no seu trabalho
@@ -66,7 +66,7 @@ export default function ApplicationBlock({
 
         <div
           style={{
-            fontFamily: 'Raleway,sans-serif',
+            fontFamily: 'var(--font-display)',
             fontWeight: 700,
             fontSize: 22,
             lineHeight: 1.28,
@@ -100,15 +100,15 @@ export default function ApplicationBlock({
                     width: 24,
                     height: 24,
                     borderRadius: 8,
-                    background: 'var(--sf)',
-                    border: '1px solid var(--pline)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontFamily: 'Raleway,sans-serif',
+                    fontFamily: 'var(--font-display)',
                     fontWeight: 700,
                     fontSize: 11,
-                    color: 'var(--p2)',
+                    color: 'var(--imperial)',
                   }}
                 >
                   {i + 1}
@@ -133,8 +133,8 @@ export default function ApplicationBlock({
             onClick={onToggle}
             disabled={busy || disabled}
             style={{
-              background: applied ? 'var(--oksoft)' : 'var(--sf)',
-              border: `1px solid ${applied ? 'var(--line)' : 'var(--pline)'}`,
+              background: applied ? 'var(--oksoft)' : 'var(--surface)',
+              border: `1px solid ${applied ? 'var(--line)' : 'var(--line2)'}`,
               color: applied ? 'var(--ok)' : 'var(--tx)',
               borderRadius: 999,
               padding: '12px 24px',

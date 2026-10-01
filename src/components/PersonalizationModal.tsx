@@ -17,8 +17,8 @@ function Chip({
       type="button"
       onClick={onClick}
       style={{
-        background: on ? 'var(--psoft)' : 'var(--sf2)',
-        border: `1px solid ${on ? 'var(--pline)' : 'var(--line)'}`,
+        background: on ? '#f3eee3' : 'var(--surface2)',
+        border: `1px solid ${on ? 'var(--line2)' : 'var(--line)'}`,
         color: on ? 'var(--tx)' : 'var(--tx2)',
         borderRadius: 999,
         padding: '11px 18px',
@@ -66,12 +66,12 @@ export default function PersonalizationModal({
 
   return (
     <Modal onClose={onClose} maxWidth={560}>
-      <Kicker color="var(--p2)" style={{ marginBottom: 14 }}>
+      <Kicker style={{ marginBottom: 14 }}>
         Duas perguntas
       </Kicker>
       <h3
         style={{
-          fontFamily: 'Raleway,sans-serif',
+          fontFamily: 'var(--font-display)',
           fontWeight: 700,
           fontSize: 26,
           lineHeight: 1.22,
@@ -123,7 +123,7 @@ export default function PersonalizationModal({
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 36 }}>
         {GOALS.map((g) => (
-          <Chip key={g} label={g} on={goal === g} onClick={() => setGoal(g)} />
+          <Chip key={g.value} label={g.value} on={goal === g.value} onClick={() => setGoal(g.value)} />
         ))}
       </div>
 
@@ -133,7 +133,7 @@ export default function PersonalizationModal({
           disabled={busy}
           style={{
             flex: 1,
-            background: 'linear-gradient(180deg,#8a5cff,var(--p))',
+            background: 'var(--imperial)',
             border: 'none',
             color: '#fff',
             borderRadius: 999,
@@ -141,7 +141,7 @@ export default function PersonalizationModal({
             fontSize: 13.5,
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: 'var(--glow)',
+            boxShadow: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
