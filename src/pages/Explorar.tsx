@@ -1,272 +1,625 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCatalog } from '../hooks/useCatalog'
-import { forYou, type CatalogCourse } from '../services/catalog'
-import { areaIcon } from '../lib/icons'
-import { courseMeta, initials } from '../lib/format'
-import { AREAS } from '../types/db'
+import { loadBookmarks, toggleBookmark } from '../services/jornada'
+import { supabase } from '../lib/supabase'
+import { NAV_ICON } from '../lib/icons'
+import { eventDay, formatDuration, initials } from '../lib/format'
+import { AREAS, GOALS, LEVELS, type AcademyEvent, type Skill } from '../types/db'
+import type { CatalogCourse } from '../services/catalog'
 import {
-  Avatar,
   CourseThumb,
   EmptyState,
   ErrorState,
+  Icon,
+  Kicker,
   PageLoading,
   ProgressBar,
+  SkillChip,
   Tag,
-  type TagKind,
+  inputStyle,
 } from '../components/ui'
+import { track } from '../lib/analytics'
 
-function tagKind(c: CatalogCourse, isPaid: boolean): TagKind {
-  if (c.status === 'coming_soon') return 'soon'
-  if (c.access_type === 'free') return 'free'
-  return isPaid ? 'unlocked' : 'paid'
+type Aba = 'todos' | 'trilhas' | 'cursos' | 'eventos'
+
+const FORMATOS = ['Vídeo', 'Texto', 'Prático'] as const
+const DURACOES = [
+  { label: 'Até 1h', max: 3600 },
+  { label: '1h a 3h', min: 3600, max: 10800 },
+  { label: 'Mais de 3h', min: 10800 },
+] as const
+
+/** Dropdown de filtro no estilo do design: pílula com seta. */
+function Filtro({
+  label,
+  valor,
+  opcoes,
+  onPick,
+}: {
+  label: string
+  valor: string | null
+  opcoes: string[]
+  onPick: (v: string | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          background: valor ? 'var(--imperial)' : 'var(--surface)',
+          color: valor ? 'var(--bg)' : 'var(--tx)',
+          border: `1px solid ${valor ? 'var(--imperial)' : 'var(--line2)'}`,
+          borderRadius: 'var(--r-control)',
+          padding: '9px 14px',
+          fontSize: 13.5,
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {valor ?? label}
+        <Icon
+          d="M6 9l6 6 6-6"
+          size={14}
+          stroke={valor ? 'var(--bg)' : 'var(--tx2)'}
+        />
+      </button>
+
+      {open && (
+        <div
+          className="k-pop"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            zIndex: 30,
+            background: 'var(--surface)',
+            border: '0.8px solid var(--line)',
+            borderRadius: 'var(--r-card)',
+            boxShadow: '0 12px 32px rgba(14,10,20,.12)',
+            padding: 6,
+            minWidth: 190,
+          }}
+        >
+          {valor && (
+            <button
+              onMouseDown={() => onPick(null)}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                background: 'transparent',
+                border: 'none',
+                padding: '9px 12px',
+                fontSize: 13.5,
+                color: 'var(--tx2)',
+                cursor: 'pointer',
+                borderRadius: 8,
+              }}
+            >
+              Limpar
+            </button>
+          )}
+          {opcoes.map((o) => (
+            <button
+              key={o}
+              onMouseDown={() => onPick(o)}
+              className="k-row"
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                background: 'transparent',
+                border: 'none',
+                padding: '9px 12px',
+                fontSize: 13.5,
+                color: o === valor ? 'var(--tx)' : 'var(--tx2)',
+                fontWeight: o === valor ? 600 : 400,
+                cursor: 'pointer',
+                borderRadius: 8,
+              }}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Explorar() {
-  const { profile, isPaid } = useAuth()
+  const { profile, isPaid, session } = useAuth()
   const { courses, loading, error, reload } = useCatalog()
   const [params, setParams] = useSearchParams()
+  const userId = session?.user.id ?? null
 
-  const tab = params.get('tab') === 'explorar' ? 'explorar' : 'voce'
-  const filter = params.get('area') ?? 'Todos'
+  const [busca, setBusca] = useState('')
+  const [skillsByCourse, setSkillsByCourse] = useState<Map<string, Skill[]>>(new Map())
+  const [eventos, setEventos] = useState<AcademyEvent[]>([])
+  const [salvos, setSalvos] = useState<Set<string>>(new Set())
 
-  const list = useMemo(() => {
-    if (tab === 'voce') return forYou(courses, profile?.area ?? null, isPaid)
-    return filter === 'Todos' ? courses : courses.filter((c) => c.area === filter)
-  }, [courses, tab, filter, profile?.area, isPaid])
+  const aba = (params.get('aba') as Aba) ?? 'todos'
+  const fArea = params.get('area')
+  const fNivel = params.get('nivel')
+  const fObjetivo = params.get('objetivo')
+  const fFormato = params.get('formato')
+  const fDuracao = params.get('duracao')
 
-  function setTab(next: 'voce' | 'explorar') {
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      supabase.from('course_skills').select('course_id, skill_id'),
+      supabase.from('skills').select('*'),
+      supabase.from('events').select('*').eq('status', 'published').order('starts_at'),
+      userId ? loadBookmarks(userId) : Promise.resolve(new Set<string>()),
+    ]).then(([mapRes, skillsRes, evRes, bm]) => {
+      if (!active) return
+      const skills = (skillsRes.data ?? []) as Skill[]
+      const m = new Map<string, Skill[]>()
+      for (const row of (mapRes.data ?? []) as { course_id: string; skill_id: string }[]) {
+        const s = skills.find((x) => x.id === row.skill_id)
+        if (!s) continue
+        m.set(row.course_id, [...(m.get(row.course_id) ?? []), s])
+      }
+      setSkillsByCourse(m)
+      setEventos((evRes.data ?? []) as AcademyEvent[])
+      setSalvos(bm)
+    })
+    return () => {
+      active = false
+    }
+  }, [userId])
+
+  function setParam(chave: string, valor: string | null) {
     const p = new URLSearchParams(params)
-    p.set('tab', next)
-    if (next === 'voce') p.delete('area')
+    if (valor) p.set(chave, valor)
+    else p.delete(chave)
     setParams(p, { replace: true })
   }
 
-  function setArea(next: string) {
-    const p = new URLSearchParams(params)
-    p.set('tab', 'explorar')
-    if (next === 'Todos') p.delete('area')
-    else p.set('area', next)
-    setParams(p, { replace: true })
+  const filtrados = useMemo(() => {
+    let list = courses
+
+    if (aba === 'trilhas') list = list.filter((c) => c.kind === 'trilha')
+    if (aba === 'cursos') list = list.filter((c) => c.kind === 'curso')
+
+    if (fArea) list = list.filter((c) => c.area === fArea)
+    if (fNivel) list = list.filter((c) => c.level === fNivel || c.level_max === fNivel)
+
+    if (fFormato === 'Vídeo') list = list.filter((c) => c.lessons.some((l) => l.has_video))
+    if (fFormato === 'Texto') list = list.filter((c) => c.lessons.some((l) => !l.has_video))
+
+    if (fDuracao) {
+      const d = DURACOES.find((x) => x.label === fDuracao)
+      if (d) {
+        list = list.filter((c) => {
+          const t = c.totalSeconds
+          if ('min' in d && d.min != null && t < d.min) return false
+          if ('max' in d && d.max != null && t > d.max) return false
+          return true
+        })
+      }
+    }
+
+    const q = busca.trim().toLowerCase()
+    if (q) {
+      list = list.filter((c) =>
+        [c.title, c.short_description, c.description, c.area, c.instructor_name]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(q)),
+      )
+    }
+
+    return list
+  }, [courses, aba, fArea, fNivel, fFormato, fDuracao, busca])
+
+  const contagens = useMemo(
+    () => ({
+      trilhas: courses.filter((c) => c.kind === 'trilha').length,
+      cursos: courses.filter((c) => c.kind === 'curso').length,
+      eventos: eventos.length,
+    }),
+    [courses, eventos],
+  )
+
+  async function onSalvar(courseId: string) {
+    if (!userId) return
+    const vai = !salvos.has(courseId)
+    setSalvos((s) => {
+      const n = new Set(s)
+      vai ? n.add(courseId) : n.delete(courseId)
+      return n
+    })
+    await toggleBookmark(userId, courseId, vai).catch(() => {})
+    track(vai ? 'course_bookmarked' : 'course_unbookmarked', { course_id: courseId })
   }
 
   if (loading) return <PageLoading />
-
   if (error) {
     return (
-      <div className="k-page" style={{ padding: '56px 56px' }}>
+      <div className="k-page" style={{ padding: '56px 48px' }}>
         <ErrorState message={error} onRetry={() => void reload()} />
       </div>
     )
   }
 
   return (
-    <div className="k-page" style={{ padding: '56px 56px 100px', maxWidth: 1180 }}>
-      <h1
-        className="k-h1"
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontWeight: 700,
-          fontSize: 31,
-          lineHeight: 1.16,
-          letterSpacing: '-.03em',
-          margin: '0 0 10px',
-        }}
-      >
-        Conteúdos
-      </h1>
-      <p style={{ color: 'var(--tx2)', margin: '0 0 34px', fontSize: 15 }}>
-        Comece pelo que já está liberado. Conheça o resto quando quiser.
-      </p>
+    <div className="k-page" style={{ padding: '48px 48px 100px', maxWidth: 1320 }}>
+      {/* ---------- busca ---------- */}
+      <div style={{ position: 'relative', marginBottom: 18 }}>
+        <Icon
+          d={NAV_ICON.search}
+          size={18}
+          stroke="var(--tx3)"
+          style={{ position: 'absolute', left: 16, top: 15 }}
+        />
+        <input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Busque por temas, cursos, trilhas ou palavras-chave"
+          style={{ ...inputStyle, padding: '14px 16px 14px 46px', fontSize: 15 }}
+        />
+      </div>
 
+      {/* ---------- filtros ---------- */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 26 }}>
+        <Filtro
+          label="Objetivo"
+          valor={fObjetivo}
+          opcoes={GOALS.map((g) => g.value)}
+          onPick={(v) => setParam('objetivo', v)}
+        />
+        <Filtro label="Área" valor={fArea} opcoes={[...AREAS]} onPick={(v) => setParam('area', v)} />
+        <Filtro
+          label="Nível"
+          valor={fNivel}
+          opcoes={LEVELS.map((l) => l.value)}
+          onPick={(v) => setParam('nivel', v)}
+        />
+        <Filtro
+          label="Formato"
+          valor={fFormato}
+          opcoes={[...FORMATOS]}
+          onPick={(v) => setParam('formato', v)}
+        />
+        <Filtro
+          label="Duração"
+          valor={fDuracao}
+          opcoes={DURACOES.map((d) => d.label)}
+          onPick={(v) => setParam('duracao', v)}
+        />
+      </div>
+
+      {/* ---------- abas ---------- */}
       <div
         style={{
           display: 'flex',
-          gap: 4,
+          gap: 6,
           borderBottom: '1px solid var(--line)',
-          marginBottom: 28,
+          marginBottom: 36,
         }}
       >
         {(
           [
-            ['Para você', 'voce'],
-            ['Explorar', 'explorar'],
+            ['Todos', 'todos', courses.length + eventos.length],
+            ['Trilhas', 'trilhas', contagens.trilhas],
+            ['Cursos', 'cursos', contagens.cursos],
+            ['Eventos', 'eventos', contagens.eventos],
           ] as const
-        ).map(([label, key]) => (
+        ).map(([label, key, n]) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => setParam('aba', key === 'todos' ? null : key)}
             style={{
               background: 'transparent',
               border: 'none',
-              borderBottom: `2px solid ${tab === key ? 'var(--imperial)' : 'transparent'}`,
-              color: tab === key ? 'var(--tx)' : 'var(--tx3)',
-              padding: '13px 18px',
-              fontSize: 13.5,
-              fontWeight: 600,
+              borderBottom: `2px solid ${aba === key ? 'var(--imperial)' : 'transparent'}`,
+              color: aba === key ? 'var(--tx)' : 'var(--tx2)',
+              padding: '12px 16px',
+              fontSize: 14,
+              fontWeight: aba === key ? 600 : 400,
               cursor: 'pointer',
               marginBottom: -1,
             }}
           >
-            {label}
+            {label} <span style={{ color: 'var(--tx3)' }}>({n})</span>
           </button>
         ))}
       </div>
 
-      {tab === 'explorar' && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 30 }}>
-          {['Todos', ...AREAS].map((name) => {
-            const on = filter === name
-            return (
-              <button
-                key={name}
-                onClick={() => setArea(name)}
-                style={{
-                  background: on ? '#f3eee3' : 'var(--surface)',
-                  border: `1px solid ${on ? 'var(--line2)' : 'var(--line)'}`,
-                  color: on ? 'var(--tx)' : 'var(--tx2)',
-                  borderRadius: 999,
-                  padding: '8px 16px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all .18s',
-                }}
-              >
-                {name}
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      {list.length === 0 ? (
-        <EmptyState
-          title="Nada nessa área ainda"
-          message="Estamos publicando por área. Veja o que já está no ar em Todos."
-        />
+      {aba === 'eventos' ? (
+        <ListaEventos eventos={eventos} isPaid={isPaid} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {list.map((c) => {
-            const locked = c.status !== 'coming_soon' && !c.hasFreeLesson && !isPaid
-            const owned = c.hasFreeLesson || isPaid
-            const cta =
-              c.status === 'coming_soon'
-                ? 'Ver estrutura'
-                : owned
-                  ? c.progress > 0
-                    ? 'Continuar'
-                    : 'Começar'
-                  : 'Conhecer'
+        <>
+          <h1 className="k-display k-h2" style={{ marginBottom: 10 }}>
+            {busca ? 'Resultados' : 'Recomendado para você'}
+          </h1>
+          <p style={{ color: 'var(--tx2)', fontSize: 15, margin: '0 0 28px', maxWidth: 680 }}>
+            {busca
+              ? `${filtrados.length} ${filtrados.length === 1 ? 'resultado' : 'resultados'} para "${busca}".`
+              : profile?.goal
+                ? `Com base no seu objetivo de ${profile.goal.toLowerCase()}, selecionamos conteúdos que podem impulsionar a sua jornada.`
+                : 'Conteúdos para desenvolver as competências que a sua operação precisa.'}
+          </p>
 
-            return (
-              <Link
-                key={c.id}
-                to={`/conteudos/${c.slug}`}
-                className="k-hoverable k-lift k-stack-mobile"
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  display: 'flex',
-                  gap: 24,
-                  alignItems: 'center',
-                  background: 'var(--surface)',
-                  border: `1px solid ${c.progress > 0 ? 'var(--line2)' : 'var(--line)'}`,
-                  borderRadius: 20,
-                  padding: '22px 24px',
-                  color: 'var(--tx)',
-                  transition: 'all .2s',
-                }}
-              >
-                <CourseThumb
-                  className="k-thumb-mobile"
-                  iconPath={areaIcon(c.area)}
-                  imageUrl={c.thumbnail_url}
-                  width={118}
-                  height={82}
-                  locked={locked}
+          {filtrados.length === 0 ? (
+            <EmptyState
+              title="Nada com esses filtros"
+              message="Tente limpar um filtro ou buscar por outro termo."
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {filtrados.map((c) => (
+                <CardConteudo
+                  key={c.id}
+                  curso={c}
+                  skills={skillsByCourse.get(c.id) ?? []}
+                  isPaid={isPaid}
+                  salvo={salvos.has(c.id)}
+                  onSalvar={() => void onSalvar(c.id)}
                 />
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 9,
-                      marginBottom: 10,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        letterSpacing: '.15em',
-                        textTransform: 'uppercase',
-                        fontWeight: 700,
-                        color: 'var(--tx3)',
-                      }}
-                    >
-                      {c.area}
-                    </span>
-                    <Tag kind={tagKind(c, isPaid)} />
-                  </div>
-
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 700,
-                      fontSize: 17.5,
-                      lineHeight: 1.28,
-                      marginBottom: 9,
-                    }}
-                  >
-                    {c.title}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar name={initials(c.instructor_name)} size={22} fontSize={8.5} />
-                    <span style={{ fontSize: 12.5, color: 'var(--tx3)' }}>
-                      {c.instructor_name ?? 'Time Kalidash'} ·{' '}
-                      {courseMeta(c.moduleCount, c.lessonCount, c.totalSeconds)}
-                    </span>
-                  </div>
-
-                  {c.progress > 0 && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        maxWidth: 280,
-                        marginTop: 12,
-                      }}
-                    >
-                      <ProgressBar percent={c.progress} height={4} />
-                      <span style={{ flex: 'none', fontSize: 11, color: 'var(--tx3)' }}>
-                        {c.progress}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <span
-                  style={{
-                    flex: 'none',
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color:
-                      owned && c.status !== 'coming_soon' ? 'var(--imperial)' : 'var(--tx2)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {cta}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------
+
+function CardConteudo({
+  curso,
+  skills,
+  isPaid,
+  salvo,
+  onSalvar,
+}: {
+  curso: CatalogCourse
+  skills: Skill[]
+  isPaid: boolean
+  salvo: boolean
+  onSalvar: () => void
+}) {
+  const bloqueado = curso.status !== 'coming_soon' && !curso.hasFreeLesson && !isPaid
+  const cta =
+    curso.status === 'coming_soon'
+      ? 'Ver estrutura'
+      : curso.progress > 0
+        ? 'Continuar'
+        : bloqueado
+          ? 'Conhecer'
+          : 'Começar'
+
+  const nivel =
+    curso.level && curso.level_max && curso.level !== curso.level_max
+      ? `${curso.level} a ${curso.level_max}`
+      : (curso.level ?? '')
+
+  return (
+    <article
+      className="k-card k-hoverable k-stack-mobile"
+      style={{ display: 'flex', gap: 0, overflow: 'hidden', padding: 0 }}
+    >
+      <div style={{ flex: 'none', width: 196, padding: 14 }} className="k-thumb-mobile">
+        <CourseThumb
+          imageUrl={curso.thumbnail_url}
+          width="100%"
+          height={150}
+          radius={10}
+          badge={curso.kind === 'trilha' ? 'TRILHA' : 'CURSO'}
+          locked={bloqueado}
+        />
+      </div>
+
+      <div
+        className="k-stack-mobile"
+        style={{ flex: 1, display: 'flex', gap: 20, padding: '20px 22px 20px 8px' }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'var(--bronze)',
+              marginBottom: 9,
+            }}
+          >
+            {curso.area}
+            {curso.instructor_name ? ` · ${curso.instructor_name}` : ''}
+          </div>
+
+          <Link to={`/conteudos/${curso.slug}`}>
+            <h3
+              className="k-display"
+              style={{ fontSize: 22, lineHeight: 1.22, marginBottom: 10, color: 'var(--tx)' }}
+            >
+              {curso.title}
+            </h3>
+          </Link>
+
+          {curso.short_description && (
+            <p
+              style={{
+                fontSize: 14,
+                color: 'var(--tx2)',
+                margin: '0 0 14px',
+                lineHeight: 1.5,
+                maxWidth: 480,
+              }}
+            >
+              {curso.short_description}
+            </p>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 18,
+              flexWrap: 'wrap',
+              fontSize: 12.5,
+              color: 'var(--tx2)',
+            }}
+          >
+            {nivel && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon d={NAV_ICON.level} size={13} />
+                {nivel}
+              </span>
+            )}
+            {curso.totalSeconds > 0 && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon d={NAV_ICON.clock} size={13} />
+                {formatDuration(curso.totalSeconds)}
+              </span>
+            )}
+            {curso.moduleCount > 0 && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon d={NAV_ICON.book} size={13} />
+                {curso.moduleCount} {curso.moduleCount === 1 ? 'módulo' : 'módulos'}
+              </span>
+            )}
+          </div>
+
+          {curso.progress > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 280, marginTop: 14 }}>
+              <ProgressBar percent={curso.progress} height={4} />
+              <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{curso.progress}%</span>
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{
+            flex: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 14,
+            minWidth: 190,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {curso.status === 'coming_soon' && <Tag kind="soon" />}
+            {skills.slice(0, 3).map((s) => (
+              <SkillChip key={s.id}>{s.name}</SkillChip>
+            ))}
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link
+              to={`/conteudos/${curso.slug}`}
+              style={{
+                background: 'var(--imperial)',
+                color: 'var(--bg)',
+                borderRadius: 'var(--r-control)',
+                padding: '11px 22px',
+                fontSize: 14,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {cta}
+              <Icon d={NAV_ICON.arrow} size={15} />
+            </Link>
+
+            <button
+              onClick={onSalvar}
+              aria-label={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
+              title={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
+              className="k-hoverable"
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 'var(--r-control)',
+                border: '1px solid var(--line2)',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon
+                d={NAV_ICON.bookmark}
+                size={17}
+                stroke={salvo ? 'var(--imperial)' : 'var(--tx2)'}
+                fill={salvo ? 'var(--imperial)' : 'none'}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ListaEventos({ eventos, isPaid }: { eventos: AcademyEvent[]; isPaid: boolean }) {
+  if (eventos.length === 0) {
+    return <EmptyState title="Nenhum evento" message="Assim que houver data marcada, aparece aqui." />
+  }
+
+  return (
+    <>
+      <Kicker style={{ marginBottom: 18 }}>Encontros ao vivo e gravações</Kicker>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {eventos.map((e) => {
+          const d = eventDay(e.starts_at)
+          return (
+            <Link
+              key={e.id}
+              to="/eventos"
+              className="k-card k-hoverable"
+              style={{ display: 'flex', alignItems: 'center', gap: 22, padding: 20 }}
+            >
+              <div style={{ textAlign: 'center', flex: 'none', width: 56 }}>
+                <div className="k-display" style={{ fontSize: 26, lineHeight: 1 }}>
+                  {d.dd}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    color: 'var(--tx2)',
+                    marginTop: 4,
+                  }}
+                >
+                  {d.mm}
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 7, marginBottom: 8 }}>
+                  <Tag kind="soon" label={(e.format ?? 'ENCONTRO').toUpperCase()} />
+                  <Tag kind={e.access_type === 'free' ? 'free' : isPaid ? 'unlocked' : 'paid'} />
+                </div>
+                <h3 className="k-display" style={{ fontSize: 18, lineHeight: 1.3 }}>
+                  {e.title}
+                </h3>
+              </div>
+              <span style={{ fontSize: 13, color: 'var(--tx2)' }}>
+                {e.instructor_name ?? 'Time Kalidash'}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </>
   )
 }
