@@ -119,6 +119,7 @@ export type LessonOutline = {
   status: LessonStatus
   duration_seconds: number | null
   thumbnail_url: string | null
+  activity_kind: ActivityKind | null
   has_video: boolean
   effective_access: CourseAccess
 }
@@ -169,6 +170,9 @@ export type AcademyEvent = {
 // Produto novo do redesign
 // =====================================================================
 
+/** Tipo da atividade, como o rótulo do desenho: Vídeo · 8 min. */
+export type ActivityKind = 'video' | 'leitura' | 'aula' | 'ferramenta'
+
 export type ContentKind = 'curso' | 'trilha'
 export type ContentLevel = 'Iniciante' | 'Intermediário' | 'Avançado'
 export type LabStatus = 'draft' | 'published'
@@ -195,6 +199,8 @@ export type Journey = {
   title: string
   subtitle: string | null
   area: string | null
+  /** ritmo editorial em semanas; nulo deixa a tela calcular */
+  suggested_weeks: number | null
   sort_order: number
 }
 
@@ -202,6 +208,7 @@ export type JourneyStep = {
   id: string
   journey_id: string
   title: string
+  description: string | null
   course_id: string | null
   sort_order: number
 }

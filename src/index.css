@@ -429,3 +429,29 @@ mux-player {
     font-size: 34px;
   }
 }
+
+/* ---------------------------------------------------------------------
+   tela de Minha Jornada
+   --------------------------------------------------------------------- */
+
+/* A trilha ocupa quase toda a largura; a lateral e uma coluna estreita
+   fixa, como no desenho. */
+.k-jornada-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 424px;
+  align-items: start;
+  gap: 28px;
+}
+
+@media (max-width: 1240px) {
+  .k-jornada-grid {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .k-jornada-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -398,3 +398,71 @@ export async function issueCertificate(courseId: string): Promise<boolean> {
   if (error) return false
   return true
 }
+
+// ---------------------------------------------------------------------
+// Progresso por aula e no tempo
+// ---------------------------------------------------------------------
+
+export type LessonProgressRow = {
+  lesson_id: string
+  watched_seconds: number
+  completed_at: string | null
+  updated_at: string
+}
+
+export async function loadLessonProgress(
+  userId: string,
+): Promise<Map<string, LessonProgressRow>> {
+  const { data } = await supabase
+    .from('lesson_progress')
+    .select('lesson_id, watched_seconds, completed_at, updated_at')
+    .eq('user_id', userId)
+
+  return new Map(((data ?? []) as LessonProgressRow[]).map((r) => [r.lesson_id, r]))
+}
+
+export type WeekBar = { label: string; count: number }
+
+/**
+ * Atividades concluídas em cada uma das últimas quatro semanas, da mais
+ * antiga para a mais recente. Conta aulas e labs, que é o que a tela
+ * chama de atividade.
+ */
+export async function loadWeeklyProgress(userId: string): Promise<WeekBar[]> {
+  const semana = 7 * 24 * 60 * 60 * 1000
+  const inicio = new Date(Date.now() - 4 * semana)
+
+  const [aulas, labs] = await Promise.all([
+    supabase
+      .from('lesson_progress')
+      .select('completed_at')
+      .eq('user_id', userId)
+      .gte('completed_at', inicio.toISOString()),
+    supabase
+      .from('lab_submissions')
+      .select('completed_at')
+      .eq('user_id', userId)
+      .gte('completed_at', inicio.toISOString()),
+  ])
+
+  const datas = [
+    ...((aulas.data ?? []) as { completed_at: string | null }[]),
+    ...((labs.data ?? []) as { completed_at: string | null }[]),
+  ]
+    .map((r) => r.completed_at)
+    .filter((d): d is string => Boolean(d))
+
+  const barras: WeekBar[] = [0, 1, 2, 3].map((i) => ({
+    label: `Sem ${i + 1}`,
+    count: 0,
+  }))
+
+  for (const d of datas) {
+    const idade = Date.now() - new Date(d).getTime()
+    // 0 = semana corrente; a barra mais à direita é a mais recente
+    const bucket = 3 - Math.min(3, Math.floor(idade / semana))
+    if (bucket >= 0) barras[bucket].count += 1
+  }
+
+  return barras
+}
