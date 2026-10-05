@@ -27,10 +27,9 @@ type Aba = 'etapas' | 'competencias' | 'anotacoes'
 /** Ícone e rótulo de cada tipo de atividade, como no desenho. */
 const TIPO: Record<ActivityKind, { label: string; icon: string }> = {
   video: { label: 'Vídeo', icon: 'M3 7h11v10H3zM16 10l5-3v10l-5-3z' },
-  leitura: {
-    label: 'Leitura',
-    icon: 'M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z',
-  },
+  // Quadrado vazio nao serve: ao lado do circulo de estado ele vira uma
+  // segunda caixa de marcar. O documento com linhas se le na hora.
+  leitura: { label: 'Leitura', icon: 'M6 3h7l5 5v13H6zM13 3v5h5M9 13h6M9 17h4' },
   aula: { label: 'Aula', icon: NAV_ICON.jornada },
   ferramenta: {
     label: 'Ferramenta',
@@ -465,9 +464,14 @@ function EtapaLinha({
   const concluida = etapa.total > 0 && etapa.feitas === etapa.total
   const naoIniciada = etapa.feitas === 0 && !etapa.current
 
-  const emAndamento = etapa.atividades.find(
-    (x) => !progresso.get(x.id)?.completed_at && isLessonUnlocked(x, isPaid),
-  )
+  // Destacar "Continuar" so faz sentido na etapa em que a pessoa esta.
+  // Sem esta guarda, abrir qualquer etapa punha um botao de continuar na
+  // primeira aula dela — inclusive numa etapa marcada "Nao iniciada".
+  const emAndamento = etapa.current
+    ? etapa.atividades.find(
+        (x) => !progresso.get(x.id)?.completed_at && isLessonUnlocked(x, isPaid),
+      )
+    : undefined
 
   return (
     <div style={{ borderBottom: ultima ? 'none' : '1px solid var(--line)' }}>
@@ -603,7 +607,9 @@ function AtividadeLinha({
           justifyContent: 'center',
           background: estado === 'feita' ? 'var(--line)' : 'transparent',
           border:
-            estado === 'feita' ? 'none' : `2px solid ${atual ? 'var(--bronze)' : 'var(--line2)'}`,
+            estado === 'feita'
+              ? 'none'
+              : `${atual ? 2 : 1.5}px solid ${atual ? 'var(--bronze)' : 'var(--line2)'}`,
         }}
       >
         {estado === 'feita' && (
