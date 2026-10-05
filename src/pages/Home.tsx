@@ -437,22 +437,22 @@ function ComeceAquiCard({ courses }: { courses: CatalogCourse[] }) {
   )
 }
 
-/** O monograma da marca dentro do selo escuro do Lab. */
+/** O monograma da marca dentro do selo do Lab: quadrado escuro, K claro. */
 function MonogramaK() {
   return (
     <span
       style={{
         flex: 'none',
-        width: 20,
-        height: 20,
-        borderRadius: 6,
-        background: 'rgba(241,236,228,.16)',
+        width: 26,
+        height: 26,
+        borderRadius: 7,
+        background: 'var(--imperial)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontFamily: 'var(--font-display)',
         fontWeight: 700,
-        fontSize: 12,
+        fontSize: 14,
         color: 'var(--champagne)',
         lineHeight: 1,
       }}
@@ -465,26 +465,39 @@ function MonogramaK() {
 function ProximoPassoCard({ lab }: { lab: LabView | null }) {
   return (
     <Card style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-      {/* arte de canto, esmaecida — o mesmo recurso do desenho */}
-      {lab?.image_url && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: 190,
-            height: 130,
-            background: `center/cover no-repeat url(${JSON.stringify(lab.image_url)})`,
-            opacity: 0.5,
-            WebkitMaskImage:
-              'radial-gradient(130% 110% at 100% 0%, #000 10%, rgba(0,0,0,.35) 55%, transparent 80%)',
-            maskImage:
-              'radial-gradient(130% 110% at 100% 0%, #000 10%, rgba(0,0,0,.35) 55%, transparent 80%)',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
+      {/*
+        A lavagem pastel no canto faz parte do desenho do cartão, não do
+        conteúdo: nenhum Lab tem imagem cadastrada e, mesmo quando tiver,
+        o canto continua sendo um degradê suave. Por isso ela é desenhada
+        em CSS e a foto do Lab, quando existe, entra por cima dela.
+      */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 178,
+          height: 122,
+          backgroundImage: [
+            lab?.image_url ? `url(${JSON.stringify(lab.image_url)})` : null,
+            'radial-gradient(62% 72% at 70% 14%, rgba(176,199,222,.38), transparent 72%)',
+            'radial-gradient(58% 66% at 99% 40%, rgba(219,193,201,.34), transparent 74%)',
+            'radial-gradient(80% 90% at 96% 0%, rgba(233,214,172,.30), transparent 78%)',
+          ]
+            .filter(Boolean)
+            .join(', '),
+          backgroundSize: lab?.image_url ? 'cover, auto, auto, auto' : undefined,
+          backgroundPosition: lab?.image_url ? 'center, 0 0, 0 0, 0 0' : undefined,
+          backgroundRepeat: 'no-repeat',
+          opacity: lab?.image_url ? 0.55 : 1,
+          WebkitMaskImage:
+            'radial-gradient(110% 105% at 100% 0%, #000 12%, rgba(0,0,0,.34) 50%, transparent 76%)',
+          maskImage:
+            'radial-gradient(110% 105% at 100% 0%, #000 12%, rgba(0,0,0,.34) 50%, transparent 76%)',
+          pointerEvents: 'none',
+        }}
+      />
 
       <div style={{ position: 'relative' }}>
         <Kicker style={{ marginBottom: 18 }}>Próximo passo</Kicker>
@@ -495,29 +508,29 @@ function ProximoPassoCard({ lab }: { lab: LabView | null }) {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 9,
-                background: 'var(--imperial)',
-                color: 'var(--bg)',
-                borderRadius: 999,
-                padding: '5px 13px 5px 6px',
-                fontSize: 12.5,
+                gap: 10,
+                background: 'var(--bg)',
+                color: 'var(--tx)',
+                borderRadius: 'var(--r-control)',
+                padding: '5px 16px 5px 5px',
+                fontSize: 14,
                 fontWeight: 600,
-                marginBottom: 18,
+                marginBottom: 22,
               }}
             >
               <MonogramaK />
               Kalidash Lab
             </div>
 
-            <h3 className="k-display" style={{ fontSize: 22, lineHeight: 1.22, marginBottom: 12 }}>
+            <h3 className="k-display" style={{ fontSize: 24, lineHeight: 1.25, marginBottom: 14 }}>
               {lab.title}
             </h3>
-            <p style={{ fontSize: 14.5, color: 'var(--tx2)', margin: '0 0 22px', lineHeight: 1.55 }}>
+            <p style={{ fontSize: 15, color: 'var(--tx2)', margin: '0 0 24px', lineHeight: 1.65 }}>
               {lab.description}
             </p>
           </>
         ) : (
-          <p style={{ fontSize: 14.5, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 22px' }}>
+          <p style={{ fontSize: 15, color: 'var(--tx2)', lineHeight: 1.65, margin: '0 0 24px' }}>
             Você aplicou tudo que está no ar. Assim que publicarmos um Lab novo, ele aparece aqui.
           </p>
         )}
@@ -531,8 +544,8 @@ function ProximoPassoCard({ lab }: { lab: LabView | null }) {
           position: 'relative',
           border: '0.8px solid var(--line2)',
           borderRadius: 'var(--r-control)',
-          padding: '12px 0',
-          fontSize: 14.5,
+          padding: '14px 0',
+          fontSize: 15,
           fontWeight: 600,
           color: 'var(--tx)',
           display: 'flex',
