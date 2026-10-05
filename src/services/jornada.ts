@@ -260,3 +260,58 @@ export async function toggleBookmark(
     await supabase.from('bookmarks').delete().eq('user_id', userId).eq('course_id', courseId)
   }
 }
+
+/** Anotação com o contexto da aula, para a aba "Minhas anotações" da Jornada. */
+export type NoteView = {
+  lesson_id: string
+  lesson_title: string
+  course_title: string
+  content: string
+  updated_at: string
+}
+
+export async function loadNotes(userId: string): Promise<NoteView[]> {
+  const { data, error } = await supabase
+    .from('lesson_notes')
+    .select('lesson_id, content, updated_at')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+
+  const rows = (data ?? []) as { lesson_id: string; content: string; updated_at: string }[]
+  const comTexto = rows.filter((r) => r.content.trim() !== '')
+  if (comTexto.length === 0) return []
+
+  const [outlineRes, coursesRes] = await Promise.all([
+    supabase
+      .from('lesson_outline')
+      .select('id, title, course_id')
+      .in('id', comTexto.map((r) => r.lesson_id)),
+    supabase.from('courses').select('id, title'),
+  ])
+
+  const aulas = new Map(
+    ((outlineRes.data ?? []) as { id: string; title: string; course_id: string }[]).map((l) => [
+      l.id,
+      l,
+    ]),
+  )
+  const cursos = new Map(
+    ((coursesRes.data ?? []) as { id: string; title: string }[]).map((c) => [c.id, c.title]),
+  )
+
+  return comTexto.flatMap((r) => {
+    const aula = aulas.get(r.lesson_id)
+    if (!aula) return [] // aula despublicada: a anotação fica guardada, mas não aparece
+    return [
+      {
+        lesson_id: r.lesson_id,
+        lesson_title: aula.title,
+        course_title: cursos.get(aula.course_id) ?? 'Kalidash Academy',
+        content: r.content,
+        updated_at: r.updated_at,
+      },
+    ]
+  })
+}
