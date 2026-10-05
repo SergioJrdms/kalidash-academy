@@ -101,7 +101,7 @@ export default function Login() {
       <div
         className="k-hide-mobile"
         style={{
-          flex: '0 0 58%',
+          flex: '0 0 57%',
           position: 'relative',
           overflow: 'hidden',
           background: 'var(--hero-bg)',
@@ -112,7 +112,7 @@ export default function Login() {
         }}
       >
         <img
-          src="https://images.unsplash.com/photo-1578321272176-b7bbc0679853?auto=format&fit=crop&w=1600&q=70"
+          src="/brand/login-hero.jpg"
           alt=""
           style={{
             position: 'absolute',

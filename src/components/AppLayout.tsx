@@ -134,26 +134,6 @@ export default function AppLayout() {
           )
         })}
 
-        {isAdmin && (
-          <Link
-            to="/admin"
-            className="k-nav"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 11,
-              padding: '9px 12px',
-              borderRadius: 'var(--r-control)',
-              color: 'var(--bronze)',
-              fontSize: 14,
-              fontWeight: 600,
-              marginTop: 8,
-            }}
-          >
-            <Icon d={NAV_ICON.admin} size={17} width={1.5} />
-            Admin
-          </Link>
-        )}
       </nav>
 
       <div style={{ flex: 1, minHeight: 24 }} />
@@ -199,18 +179,35 @@ export default function AppLayout() {
         <Icon d="M9 6l6 6-6 6" size={15} stroke="var(--tx3)" />
       </Link>
 
+      {/* O Admin não faz parte da navegação do aluno: fica aqui embaixo,
+          discreto, e só para quem tem o papel. */}
+      {isAdmin && (
+        <Link
+          to="/admin"
+          style={{
+            marginTop: 10,
+            fontSize: 12.5,
+            color: 'var(--bronze)',
+            padding: '4px 4px',
+            display: 'inline-block',
+          }}
+        >
+          Ir para o Admin ↗
+        </Link>
+      )}
+
       <button
         onClick={() => {
           void signOut()
         }}
         style={{
-          marginTop: 8,
+          marginTop: isAdmin ? 4 : 10,
           background: 'transparent',
           border: 'none',
           color: 'var(--tx3)',
           fontSize: 12.5,
           cursor: 'pointer',
-          padding: '6px 4px',
+          padding: '4px 4px',
           textAlign: 'left',
         }}
       >
