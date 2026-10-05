@@ -1,49 +1,48 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, type OAuthProvider } from '../hooks/useAuth'
 import { Banner, Field, inputStyle, Spinner } from '../components/ui'
 
 type Mode = 'signin' | 'signup' | 'reset'
 
-/** Marca em versão clara, para o painel do formulário. */
+/** A marca, no arquivo original baixado do Figma. */
 function Logo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-      <svg width="34" height="34" viewBox="0 0 26 26" aria-hidden="true">
-        <path d="M3 2h5l-5 11z" fill="var(--champagne)" />
-        <path d="M3 13l5-11h3L5 13l6 11H8z" fill="var(--imperial)" />
-        <path d="M13 2h3v9l7-9h4l-8 10 8 12h-4l-7-10v10h-3z" fill="var(--imperial)" />
-      </svg>
-      <div style={{ lineHeight: 1 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 27,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          Kalidash
-        </div>
-        <div
-          style={{
-            fontSize: 9.5,
-            fontWeight: 600,
-            letterSpacing: '0.28em',
-            color: 'var(--tx2)',
-            marginTop: 4,
-            textAlign: 'right',
-          }}
-        >
-          ACADEMY
-        </div>
-      </div>
-    </div>
+    <img
+      src="/brand/kalidash-academy.png"
+      alt="Kalidash Academy"
+      width={210}
+      height={57}
+      style={{ display: 'block', width: 210, height: 'auto' }}
+    />
+  )
+}
+
+/** Logotipos dos provedores, nas cores oficiais de cada um. */
+function GoogleMark() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true" style={{ flex: 'none' }}>
+      <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z" />
+      <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41 15.4 46 24 46z" />
+      <path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3A22 22 0 002 24c0 3.6.9 6.9 2.3 9.8l7.3-5.7z" />
+      <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 7 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1z" />
+    </svg>
+  )
+}
+
+function MicrosoftMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 23 23" aria-hidden="true" style={{ flex: 'none' }}>
+      <path fill="#F25022" d="M1 1h10v10H1z" />
+      <path fill="#7FBA00" d="M12 1h10v10H12z" />
+      <path fill="#00A4EF" d="M1 12h10v10H1z" />
+      <path fill="#FFB900" d="M12 12h10v10H12z" />
+    </svg>
   )
 }
 
 export default function Login() {
-  const { signIn, signUp, resetPassword, session } = useAuth()
+  const { signIn, signInWithProvider, signUp, resetPassword, session } = useAuth()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState<Mode>('signin')
@@ -53,10 +52,25 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [social, setSocial] = useState<OAuthProvider | null>(null)
 
   useEffect(() => {
     if (session) navigate('/', { replace: true })
   }, [session, navigate])
+
+  async function entrarCom(provider: OAuthProvider) {
+    setError(null)
+    setNotice(null)
+    setSocial(provider)
+    try {
+      // Em caso de sucesso o navegador sai desta página, então não há
+      // nada a fazer depois: a volta cai no onAuthStateChange.
+      await signInWithProvider(provider)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível continuar.')
+      setSocial(null)
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -346,6 +360,40 @@ export default function Login() {
             {busy ? 'Aguarde...' : copy.cta}
           </button>
 
+          {/* Login social. Redefinir senha nao tem a ver com provedor,
+              entao essa secao some no modo reset. */}
+          {mode !== 'reset' && (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  margin: '26px 0 20px',
+                }}
+              >
+                <span style={{ flex: 1, height: 1, background: 'var(--line2)' }} />
+                <span style={{ fontSize: 12.5, color: 'var(--tx3)' }}>ou continue com</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--line2)' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <BotaoSocial
+                  onClick={() => void entrarCom('google')}
+                  carregando={social === 'google'}
+                  marca={<GoogleMark />}
+                  nome="Google"
+                />
+                <BotaoSocial
+                  onClick={() => void entrarCom('azure')}
+                  carregando={social === 'azure'}
+                  marca={<MicrosoftMark />}
+                  nome="Microsoft"
+                />
+              </div>
+            </>
+          )}
+
           {mode === 'reset' && (
             <button
               type="button"
@@ -405,5 +453,46 @@ export default function Login() {
         </form>
       </div>
     </div>
+  )
+}
+
+/** Botao de provedor: contorno leve, marca colorida e o nome. */
+function BotaoSocial({
+  onClick,
+  carregando,
+  marca,
+  nome,
+}: {
+  onClick: () => void
+  carregando: boolean
+  marca: React.ReactNode
+  nome: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={carregando}
+      className="k-hoverable"
+      style={{
+        flex: 1,
+        minWidth: 0,
+        background: 'var(--surface)',
+        border: '0.8px solid var(--line2)',
+        borderRadius: 'var(--r-control)',
+        padding: '12px 0',
+        fontSize: 14,
+        fontWeight: 600,
+        color: 'var(--tx)',
+        cursor: carregando ? 'default' : 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+      }}
+    >
+      {carregando ? <Spinner size={14} color="var(--tx2)" /> : marca}
+      {nome}
+    </button>
   )
 }

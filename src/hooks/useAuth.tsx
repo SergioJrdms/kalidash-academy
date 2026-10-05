@@ -10,6 +10,9 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types/db'
 
+/** Os dois logins sociais do design. No Supabase a Microsoft é `azure`. */
+export type OAuthProvider = 'google' | 'azure'
+
 type AuthContextValue = {
   session: Session | null
   profile: Profile | null
@@ -17,6 +20,7 @@ type AuthContextValue = {
   isAdmin: boolean
   isPaid: boolean
   signIn: (email: string, password: string) => Promise<void>
+  signInWithProvider: (provider: OAuthProvider) => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<{ needsConfirmation: boolean }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
@@ -98,6 +102,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw new Error(translateAuthError(error.message))
       },
 
+      async signInWithProvider(provider) {
+        // O redirecionamento volta para a raiz; o AuthProvider pega a
+        // sessão pelo onAuthStateChange e o app segue como num login
+        // normal. O onboarding continua valendo para quem ainda não fez.
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo: `${window.location.origin}/` },
+        })
+        if (error) throw new Error(translateAuthError(error.message))
+      },
+
       async signUp(email, password, fullName) {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -161,5 +176,8 @@ function translateAuthError(message: string): string {
     return 'Muitas tentativas. Aguarde um minuto e tente de novo.'
   if (m.includes('failed to fetch') || m.includes('network'))
     return 'Sem conexão com o servidor. Verifique sua internet.'
+  // O provedor existe no SDK mas não foi ligado no painel do Supabase.
+  if (m.includes('provider is not enabled') || m.includes('unsupported provider'))
+    return 'Esse login ainda não foi habilitado. Use e-mail e senha por enquanto.'
   return message
 }
