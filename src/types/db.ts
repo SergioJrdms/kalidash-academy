@@ -39,6 +39,10 @@ export type Profile = {
   company: string | null
   area: string | null
   goal: string | null
+  headline: string | null
+  linkedin_url: string | null
+  interest: string | null
+  community_opt_in: boolean
   level: string | null
   role: UserRole
   access_level: AccessLevel
@@ -250,4 +254,10 @@ export type Certificate = {
   course_id: string
   issued_at: string
   code: string
+}
+
+export type EventRegistration = {
+  user_id: string
+  event_id: string
+  created_at: string
 }

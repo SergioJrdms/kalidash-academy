@@ -315,3 +315,36 @@ export async function loadNotes(userId: string): Promise<NoteView[]> {
     ]
   })
 }
+
+// ---------------------------------------------------------------------
+// Inscrição em evento
+// ---------------------------------------------------------------------
+
+/** Ids dos eventos em que a pessoa já se inscreveu. */
+export async function loadRegistrations(userId: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('event_registrations')
+    .select('event_id')
+    .eq('user_id', userId)
+  return new Set(((data ?? []) as { event_id: string }[]).map((r) => r.event_id))
+}
+
+export async function toggleRegistration(
+  userId: string,
+  eventId: string,
+  inscrever: boolean,
+): Promise<void> {
+  if (inscrever) {
+    const { error } = await supabase
+      .from('event_registrations')
+      .upsert({ user_id: userId, event_id: eventId })
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('event_registrations')
+      .delete()
+      .eq('user_id', userId)
+      .eq('event_id', eventId)
+    if (error) throw new Error(error.message)
+  }
+}
