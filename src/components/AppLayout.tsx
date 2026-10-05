@@ -27,41 +27,16 @@ function activeKey(pathname: string): string {
   return ''
 }
 
-/** Marca da Kalidash: monograma em dois tons + palavra. */
+/** A marca, no arquivo original baixado do Figma. */
 function Logo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" style={{ flex: 'none' }}>
-        <path d="M3 2h5l-5 11z" fill="var(--champagne)" />
-        <path d="M3 13l5-11h3L5 13l6 11H8z" fill="var(--imperial)" />
-        <path d="M13 2h3v9l7-9h4l-8 10 8 12h-4l-7-10v10h-3z" fill="var(--imperial)" />
-      </svg>
-      <div style={{ lineHeight: 1 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 19,
-            letterSpacing: '-0.01em',
-            color: 'var(--tx)',
-          }}
-        >
-          Kalidash
-        </div>
-        <div
-          style={{
-            fontSize: 8.5,
-            fontWeight: 600,
-            letterSpacing: '0.26em',
-            color: 'var(--tx2)',
-            marginTop: 3,
-            textAlign: 'right',
-          }}
-        >
-          ACADEMY
-        </div>
-      </div>
-    </div>
+    <img
+      src="/brand/kalidash-academy.png"
+      alt="Kalidash Academy"
+      width={160}
+      height={43}
+      style={{ display: 'block', width: 160, height: 'auto' }}
+    />
   )
 }
 
@@ -138,81 +113,73 @@ export default function AppLayout() {
 
       <div style={{ flex: 1, minHeight: 24 }} />
 
-      <Link
-        to="/perfil"
-        className="k-hoverable"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 11,
-          border: '0.8px solid var(--line)',
-          borderRadius: 'var(--r-control)',
-          padding: '10px 11px',
-          color: 'var(--tx)',
-        }}
-      >
-        <Avatar name={initials(profile?.full_name ?? 'U')} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {name}
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--tx2)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {isPaid ? 'Acesso liberado' : 'Acesso gratuito'}
-          </div>
-        </div>
-        <Icon d="M9 6l6 6-6 6" size={15} stroke="var(--tx3)" />
-      </Link>
-
-      {/* O Admin não faz parte da navegação do aluno: fica aqui embaixo,
-          discreto, e só para quem tem o papel. */}
-      {isAdmin && (
+      <div style={{ borderTop: '0.8px solid var(--line)', paddingTop: 14, margin: '0 -4px' }}>
         <Link
-          to="/admin"
+          to="/perfil"
+          className="k-hoverable"
           style={{
-            marginTop: 10,
-            fontSize: 12.5,
-            color: 'var(--bronze)',
-            padding: '4px 4px',
-            display: 'inline-block',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            borderRadius: 'var(--r-control)',
+            padding: '8px 8px',
+            color: 'var(--tx)',
           }}
         >
-          Ir para o Admin ↗
+          <Avatar name={initials(profile?.full_name ?? 'U')} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {name}
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--tx2)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {isPaid ? 'Acesso liberado' : 'Acesso gratuito'}
+            </div>
+          </div>
+          <Icon d="M9 6l6 6-6 6" size={15} stroke="var(--tx3)" />
         </Link>
-      )}
 
-      <button
-        onClick={() => {
-          void signOut()
-        }}
-        style={{
-          marginTop: isAdmin ? 4 : 10,
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--tx3)',
-          fontSize: 12.5,
-          cursor: 'pointer',
-          padding: '4px 4px',
-          textAlign: 'left',
-        }}
-      >
-        Sair
-      </button>
+        {/* O desenho nao tem estes dois. Ficam minimos: sair precisa estar
+            ao alcance, e o Admin nao faz parte da navegacao do aluno. */}
+        <div style={{ display: 'flex', gap: 14, padding: '6px 8px 0' }}>
+          <button
+            onClick={() => {
+              void signOut()
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--tx3)',
+              fontSize: 11.5,
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            Sair
+          </button>
+          {isAdmin && (
+            <Link to="/admin" style={{ fontSize: 11.5, color: 'var(--tx3)' }}>
+              Admin
+            </Link>
+          )}
+        </div>
+      </div>
+
     </aside>
   )
 

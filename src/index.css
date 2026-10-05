@@ -395,3 +395,37 @@ mux-player {
     display: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------
+   tela de Início
+   --------------------------------------------------------------------- */
+
+/* As tres linhas dividem a mesma grade para os cartoes da esquerda e da
+   direita ficarem alinhados e com a mesma altura em cada linha. */
+.k-home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
+}
+
+.k-home-title {
+  font-size: 64px;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+@media (max-width: 1180px) {
+  .k-home-title {
+    font-size: 52px;
+  }
+}
+
+@media (max-width: 900px) {
+  .k-home-grid {
+    grid-template-columns: 1fr;
+  }
+  .k-home-title {
+    font-size: 34px;
+  }
+}

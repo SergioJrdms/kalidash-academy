@@ -118,6 +118,7 @@ export type LessonOutline = {
   sort_order: number
   status: LessonStatus
   duration_seconds: number | null
+  thumbnail_url: string | null
   has_video: boolean
   effective_access: CourseAccess
 }

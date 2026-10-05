@@ -294,6 +294,7 @@ export function Avatar({
 /** Miniatura de conteúdo. Sem imagem, cai num tom de pedra sóbrio. */
 export function CourseThumb({
   imageUrl,
+  iconPath,
   width,
   height,
   radius = 12,
@@ -320,11 +321,25 @@ export function CourseThumb({
         borderRadius: radius,
         background: imageUrl
           ? `center/cover no-repeat url(${JSON.stringify(imageUrl)})`
-          : 'linear-gradient(145deg,#e8e1d6,#d1cbc2)',
+          : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
         position: 'relative',
         overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
+      {/* Sem foto, o espaço não fica cinza: recebe a marca d'água da área,
+          em champanhe sobre o roxo da marca. */}
+      {!imageUrl && (
+        <Icon
+          d={iconPath ?? 'M12 3l1.8 5 5 1.8-5 1.8L12 16.6l-1.8-5-5-1.8 5-1.8z'}
+          size={Math.min(54, typeof height === 'number' ? height * 0.42 : 42)}
+          stroke="var(--champagne)"
+          width={1.1}
+          style={{ opacity: 0.45 }}
+        />
+      )}
       {badge && (
         <span
           style={{
