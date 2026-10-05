@@ -348,3 +348,53 @@ export async function toggleRegistration(
     if (error) throw new Error(error.message)
   }
 }
+
+// ---------------------------------------------------------------------
+// Certificados
+// ---------------------------------------------------------------------
+
+export type CertificateView = {
+  id: string
+  course_id: string
+  course_title: string
+  course_kind: string
+  code: string
+  issued_at: string
+}
+
+export async function loadCertificates(userId: string): Promise<CertificateView[]> {
+  const [certRes, coursesRes] = await Promise.all([
+    supabase
+      .from('certificates')
+      .select('id, course_id, code, issued_at')
+      .eq('user_id', userId)
+      .order('issued_at', { ascending: false }),
+    supabase.from('courses').select('id, title, kind'),
+  ])
+
+  const cursos = new Map(
+    ((coursesRes.data ?? []) as { id: string; title: string; kind: string }[]).map((c) => [
+      c.id,
+      c,
+    ]),
+  )
+
+  return ((certRes.data ?? []) as Omit<CertificateView, 'course_title' | 'course_kind'>[]).map(
+    (c) => ({
+      ...c,
+      course_title: cursos.get(c.course_id)?.title ?? 'Curso',
+      course_kind: cursos.get(c.course_id)?.kind ?? 'curso',
+    }),
+  )
+}
+
+/**
+ * Pede o certificado ao banco. Quem confere a conclusão é a função
+ * `issue_certificate`, no servidor — o frontend não decide isso.
+ * Devolve null quando o curso ainda não está concluído.
+ */
+export async function issueCertificate(courseId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('issue_certificate', { p_course_id: courseId })
+  if (error) return false
+  return true
+}

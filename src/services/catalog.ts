@@ -23,6 +23,8 @@ export type CatalogCourse = Course & {
   hasFreeLesson: boolean
   /** todas as aulas exigem acesso pago */
   fullyLocked: boolean
+  /** quando o usuário tocou numa aula deste curso pela última vez */
+  lastViewedAt: string | null
 }
 
 type Bundle = {
@@ -66,6 +68,7 @@ function assemble(b: Bundle): CatalogCourse[] {
   const completed = new Set(
     b.progress.filter((p) => p.completed_at).map((p) => p.lesson_id),
   )
+  const visitedAt = new Map(b.progress.map((p) => [p.lesson_id, p.updated_at]))
 
   return b.courses.map((course) => {
     const modules = b.modules
@@ -93,6 +96,12 @@ function assemble(b: Bundle): CatalogCourse[] {
       progress: lessons.length === 0 ? 0 : Math.round((completedCount / lessons.length) * 100),
       hasFreeLesson: lessons.some((l) => l.effective_access === 'free'),
       fullyLocked: lessons.length > 0 && lessons.every((l) => l.effective_access === 'paid'),
+      lastViewedAt:
+        lessons
+          .map((l) => visitedAt.get(l.id))
+          .filter((d): d is string => Boolean(d))
+          .sort()
+          .pop() ?? null,
     }
   })
 }

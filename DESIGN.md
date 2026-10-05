@@ -166,3 +166,36 @@ guia a implementação — o Figma não é acessível de forma confiável.
   "Começar trilha", "Salvar para depois", e a ficha
   (`3 módulos / 12 aulas no total`, `2h 30min de conteúdo`, `Certificado ao concluir`)
 - "O que você vai aprender": lista com check
+
+---
+
+# Onde a implementação se afasta do desenho, e por quê
+
+O design foi seguido tela a tela. Três pontos mudaram de propósito:
+
+**Google Calendar.** O desenho tem um botão "Conectar Google Calendar".
+Sincronizar de verdade exige o fluxo OAuth do Google, que não faz parte
+deste escopo, e um botão que não conecta nada é pior do que nenhum. O
+painel de agenda ficou (mês navegável, dias de evento marcados) e cada
+evento oferece um `.ics`, que entra no Google Calendar, no Outlook e no
+Apple Calendar sem integração nenhuma.
+
+**Diretório da Comunidade.** O desenho mostra perfis de outras pessoas
+direto na tela. Publicar isso exporia nome, cargo e empresa de todos os
+alunos uns para os outros sem que nenhum tivesse concordado. O diretório
+é opt-in: `profiles.community_opt_in` nasce `false` e a pessoa entra pela
+própria tela. O e-mail nunca aparece, e o LinkedIn só é liberado depois
+que as duas pessoas aceitaram a conexão.
+
+**Certificados.** A política inicial deixava o dono da linha escrever na
+tabela `certificates`, o que permitiria emitir para si um certificado de
+curso nunca aberto. O usuário ficou só com leitura, e a emissão passa
+pela função `issue_certificate`, que confere a conclusão no servidor.
+
+As abas do Explorar são **Todos · Trilhas · Aulas · Eventos · Labs**,
+como no desenho. A antiga aba "Cursos" saiu: trilha e curso convivem na
+mesma lista e "Aulas" lista aula por aula, para quem busca um assunto e
+não uma trilha inteira.
+
+As vagas da Comunidade e os Labs são administrados direto no Supabase: a
+tela de Admin ficou como estava, conforme pedido.

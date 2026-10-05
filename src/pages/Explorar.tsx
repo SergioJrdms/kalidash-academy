@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCatalog } from '../hooks/useCatalog'
-import { loadBookmarks, toggleBookmark } from '../services/jornada'
+import { loadBookmarks, loadLabs, toggleBookmark, type LabView } from '../services/jornada'
 import { supabase } from '../lib/supabase'
 import { NAV_ICON } from '../lib/icons'
 import { eventDay, formatDuration, initials } from '../lib/format'
@@ -22,7 +22,7 @@ import {
 } from '../components/ui'
 import { track } from '../lib/analytics'
 
-type Aba = 'todos' | 'trilhas' | 'cursos' | 'eventos'
+type Aba = 'todos' | 'trilhas' | 'aulas' | 'eventos' | 'labs'
 
 const FORMATOS = ['Vídeo', 'Texto', 'Prático'] as const
 const DURACOES = [
@@ -145,6 +145,7 @@ export default function Explorar() {
   const [skillsByCourse, setSkillsByCourse] = useState<Map<string, Skill[]>>(new Map())
   const [eventos, setEventos] = useState<AcademyEvent[]>([])
   const [salvos, setSalvos] = useState<Set<string>>(new Set())
+  const [labs, setLabs] = useState<LabView[]>([])
 
   const aba = (params.get('aba') as Aba) ?? 'todos'
   const fArea = params.get('area')
@@ -160,7 +161,8 @@ export default function Explorar() {
       supabase.from('skills').select('*'),
       supabase.from('events').select('*').eq('status', 'published').order('starts_at'),
       userId ? loadBookmarks(userId) : Promise.resolve(new Set<string>()),
-    ]).then(([mapRes, skillsRes, evRes, bm]) => {
+      loadLabs(userId).catch(() => [] as LabView[]),
+    ]).then(([mapRes, skillsRes, evRes, bm, labList]) => {
       if (!active) return
       const skills = (skillsRes.data ?? []) as Skill[]
       const m = new Map<string, Skill[]>()
@@ -172,6 +174,7 @@ export default function Explorar() {
       setSkillsByCourse(m)
       setEventos((evRes.data ?? []) as AcademyEvent[])
       setSalvos(bm)
+      setLabs(labList)
     })
     return () => {
       active = false
@@ -189,7 +192,6 @@ export default function Explorar() {
     let list = courses
 
     if (aba === 'trilhas') list = list.filter((c) => c.kind === 'trilha')
-    if (aba === 'cursos') list = list.filter((c) => c.kind === 'curso')
 
     if (fArea) list = list.filter((c) => c.area === fArea)
     if (fNivel) list = list.filter((c) => c.level === fNivel || c.level_max === fNivel)
@@ -221,10 +223,37 @@ export default function Explorar() {
     return list
   }, [courses, aba, fArea, fNivel, fFormato, fDuracao, busca])
 
+  /**
+   * A aba "Aulas" lista aula por aula, não curso por curso: é o atalho
+   * para quem busca um assunto específico e não quer uma trilha inteira.
+   */
+  const aulas = useMemo(() => {
+    const q = busca.trim().toLowerCase()
+    return courses
+      .flatMap((c) => c.lessons.map((l) => ({ aula: l, curso: c })))
+      .filter(({ aula, curso }) => {
+        if (fArea && curso.area !== fArea) return false
+        if (fFormato === 'Vídeo' && !aula.has_video) return false
+        if (fFormato === 'Texto' && aula.has_video) return false
+        if (!q) return true
+        return [aula.title, aula.summary, curso.title]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(q))
+      })
+  }, [courses, busca, fArea, fFormato])
+
+  const labsFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase()
+    return labs.filter((l) => {
+      if (fNivel && l.level !== fNivel) return false
+      if (!q) return true
+      return [l.title, l.description].filter(Boolean).some((v) => v!.toLowerCase().includes(q))
+    })
+  }, [labs, busca, fNivel])
+
   const contagens = useMemo(
     () => ({
       trilhas: courses.filter((c) => c.kind === 'trilha').length,
-      cursos: courses.filter((c) => c.kind === 'curso').length,
       eventos: eventos.length,
     }),
     [courses, eventos],
@@ -309,10 +338,11 @@ export default function Explorar() {
       >
         {(
           [
-            ['Todos', 'todos', courses.length + eventos.length],
+            ['Todos', 'todos', courses.length + eventos.length + labs.length],
             ['Trilhas', 'trilhas', contagens.trilhas],
-            ['Cursos', 'cursos', contagens.cursos],
+            ['Aulas', 'aulas', aulas.length],
             ['Eventos', 'eventos', contagens.eventos],
+            ['Labs', 'labs', labs.length],
           ] as const
         ).map(([label, key, n]) => (
           <button
@@ -337,6 +367,10 @@ export default function Explorar() {
 
       {aba === 'eventos' ? (
         <ListaEventos eventos={eventos} isPaid={isPaid} />
+      ) : aba === 'aulas' ? (
+        <ListaAulas itens={aulas} isPaid={isPaid} />
+      ) : aba === 'labs' ? (
+        <ListaLabs labs={labsFiltrados} />
       ) : (
         <>
           <h1 className="k-display k-h2" style={{ marginBottom: 10 }}>
@@ -619,6 +653,204 @@ function ListaEventos({ eventos, isPaid }: { eventos: AcademyEvent[]; isPaid: bo
             </Link>
           )
         })}
+      </div>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------
+
+/** Aula solta, para quem busca um assunto e não uma trilha inteira. */
+function ListaAulas({
+  itens,
+  isPaid,
+}: {
+  itens: { aula: CatalogCourse['lessons'][number]; curso: CatalogCourse }[]
+  isPaid: boolean
+}) {
+  if (itens.length === 0) {
+    return (
+      <EmptyState
+        title="Nenhuma aula com esses filtros"
+        message="Tente limpar um filtro ou buscar por outro termo."
+      />
+    )
+  }
+
+  return (
+    <>
+      <h1 className="k-display k-h2" style={{ marginBottom: 10 }}>
+        Aulas
+      </h1>
+      <p style={{ color: 'var(--tx2)', fontSize: 15, margin: '0 0 28px', maxWidth: 680 }}>
+        {itens.length} {itens.length === 1 ? 'aula' : 'aulas'} em todas as trilhas e cursos.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {itens.map(({ aula, curso }) => {
+          const bloqueada = aula.effective_access === 'paid' && !isPaid
+          return (
+            <Link
+              key={aula.id}
+              to={bloqueada ? `/conteudos/${curso.slug}` : `/aula/${aula.id}`}
+              className="k-card k-hoverable"
+              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, color: 'var(--tx)' }}
+            >
+              <span
+                style={{
+                  flex: 'none',
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: 'var(--bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon
+                  d={aula.has_video ? NAV_ICON.play : NAV_ICON.book}
+                  size={15}
+                  stroke="var(--imperial)"
+                />
+              </span>
+
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.09em',
+                    textTransform: 'uppercase',
+                    color: 'var(--bronze)',
+                    marginBottom: 5,
+                  }}
+                >
+                  {curso.title}
+                </span>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>
+                  {aula.title}
+                </span>
+                {aula.summary && (
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: 13,
+                      color: 'var(--tx2)',
+                      marginTop: 4,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {aula.summary}
+                  </span>
+                )}
+              </span>
+
+              <span
+                style={{
+                  flex: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  fontSize: 12.5,
+                  color: 'var(--tx2)',
+                }}
+              >
+                {aula.has_video ? 'Vídeo' : 'Leitura'}
+                {aula.duration_seconds ? ` · ${formatDuration(aula.duration_seconds)}` : ''}
+                {bloqueada && <Tag kind="paid" />}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+/** Labs no Explorar: a prática é conteúdo, então entra na busca também. */
+function ListaLabs({ labs }: { labs: LabView[] }) {
+  if (labs.length === 0) {
+    return (
+      <EmptyState
+        title="Nenhum Lab com esses filtros"
+        message="Tente limpar um filtro ou buscar por outro termo."
+      />
+    )
+  }
+
+  return (
+    <>
+      <h1 className="k-display k-h2" style={{ marginBottom: 10 }}>
+        Kalidash Labs
+      </h1>
+      <p style={{ color: 'var(--tx2)', fontSize: 15, margin: '0 0 28px', maxWidth: 680 }}>
+        Exercícios para aplicar na sua operação. Abrem em Aplicar.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {labs.map((l) => (
+          <Link
+            key={l.id}
+            to="/aplicar"
+            className="k-card k-hoverable"
+            style={{ display: 'flex', gap: 16, padding: 16, color: 'var(--tx)', alignItems: 'center' }}
+          >
+            {l.image_url ? (
+              <img
+                src={l.image_url}
+                alt=""
+                style={{ flex: 'none', width: 92, height: 62, objectFit: 'cover', borderRadius: 10 }}
+              />
+            ) : (
+              <span
+                style={{
+                  flex: 'none',
+                  width: 92,
+                  height: 62,
+                  borderRadius: 10,
+                  background: 'var(--bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon d={NAV_ICON.spark} size={18} stroke="var(--stone)" />
+              </span>
+            )}
+
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 15.5, fontWeight: 600, marginBottom: 5 }}>
+                {l.title}
+              </span>
+              {l.description && (
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 13,
+                    color: 'var(--tx2)',
+                    lineHeight: 1.5,
+                    marginBottom: 8,
+                  }}
+                >
+                  {l.description}
+                </span>
+              )}
+              <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                {l.skills.map((s) => (
+                  <SkillChip key={s.id}>{s.name}</SkillChip>
+                ))}
+              </span>
+            </span>
+
+            <span style={{ flex: 'none', fontSize: 12.5, color: 'var(--tx2)' }}>
+              {[l.is_case ? 'Case' : 'Lab', l.level, l.minutes ? `${l.minutes} min` : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </Link>
+        ))}
       </div>
     </>
   )
