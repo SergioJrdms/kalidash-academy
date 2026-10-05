@@ -27,7 +27,10 @@ type Aba = 'etapas' | 'competencias' | 'anotacoes'
 /** Ícone e rótulo de cada tipo de atividade, como no desenho. */
 const TIPO: Record<ActivityKind, { label: string; icon: string }> = {
   video: { label: 'Vídeo', icon: 'M3 7h11v10H3zM16 10l5-3v10l-5-3z' },
-  leitura: { label: 'Leitura', icon: NAV_ICON.note },
+  leitura: {
+    label: 'Leitura',
+    icon: 'M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z',
+  },
   aula: { label: 'Aula', icon: NAV_ICON.jornada },
   ferramenta: {
     label: 'Ferramenta',
@@ -474,10 +477,10 @@ function EtapaLinha({
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 18,
+          gap: 21,
           background: 'transparent',
           border: 'none',
-          padding: '22px 0',
+          padding: '20px 0',
           cursor: 'pointer',
           textAlign: 'left',
         }}
@@ -485,13 +488,13 @@ function EtapaLinha({
         <span
           style={{
             flex: 'none',
-            width: 44,
-            height: 44,
+            width: 42,
+            height: 42,
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 15,
+            fontSize: 15.5,
             fontWeight: 600,
             background: concluida ? 'var(--imperial)' : 'transparent',
             border: concluida
@@ -507,23 +510,23 @@ function EtapaLinha({
           <span
             style={{
               display: 'block',
-              fontSize: 16.5,
+              fontSize: 17,
               fontWeight: 600,
-              marginBottom: 5,
+              marginBottom: 6,
               color: naoIniciada ? 'var(--tx2)' : 'var(--tx)',
             }}
           >
             {indice}. {etapa.title}
           </span>
           {etapa.description && (
-            <span style={{ display: 'block', fontSize: 14, color: 'var(--tx2)' }}>
+            <span style={{ display: 'block', fontSize: 15, color: 'var(--tx2)' }}>
               {etapa.description}
             </span>
           )}
         </span>
 
         <span
-          style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 14, fontSize: 14.5 }}
+          style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, fontSize: 15 }}
         >
           {etapa.total === 0 || naoIniciada ? (
             <span style={{ color: 'var(--tx2)' }}>Não iniciada</span>
@@ -534,17 +537,28 @@ function EtapaLinha({
                   {etapa.feitas} de {etapa.total} atividades
                 </span>
               )}
-              <span style={{ fontWeight: 600, color: concluida ? 'var(--tx)' : 'var(--bronze)' }}>
+              <span
+                style={{
+                  fontSize: 17,
+                  fontWeight: 600,
+                  color: concluida ? 'var(--tx)' : 'var(--bronze)',
+                }}
+              >
                 {etapa.percent}%
               </span>
             </>
           )}
-          <Icon d={aberta ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} size={17} stroke="var(--tx3)" />
+          <Icon
+            d={aberta ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+            size={18}
+            stroke="var(--tx3)"
+            style={{ marginLeft: 8 }}
+          />
         </span>
       </button>
 
       {aberta && etapa.atividades.length > 0 && (
-        <div style={{ padding: '0 0 20px 62px' }}>
+        <div style={{ padding: '0 0 20px 63px' }}>
           {etapa.atividades.map((a) => (
             <AtividadeLinha
               key={a.id}
@@ -581,29 +595,25 @@ function AtividadeLinha({
       <span
         style={{
           flex: 'none',
-          width: 22,
-          height: 22,
+          width: 24,
+          height: 24,
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           background: estado === 'feita' ? 'var(--line)' : 'transparent',
           border:
-            estado === 'feita' ? 'none' : `1.5px solid ${atual ? 'var(--bronze)' : 'var(--line2)'}`,
+            estado === 'feita' ? 'none' : `2px solid ${atual ? 'var(--bronze)' : 'var(--line2)'}`,
         }}
       >
-        {estado === 'feita' ? (
-          <Icon d={NAV_ICON.check} size={12} width={2.6} stroke="var(--tx)" />
-        ) : atual ? (
-          <span
-            style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--bronze)' }}
-          />
-        ) : null}
+        {estado === 'feita' && (
+          <Icon d={NAV_ICON.check} size={13} width={2.6} stroke="var(--tx)" />
+        )}
       </span>
 
       <Icon
         d={t.icon}
-        size={16}
+        size={17}
         stroke={estado === 'bloqueada' ? 'var(--tx3)' : 'var(--tx2)'}
         style={{ flex: 'none' }}
       />
@@ -612,7 +622,7 @@ function AtividadeLinha({
           para a acao encostar na direita */}
       <span
         style={{
-          fontSize: 15,
+          fontSize: 16,
           fontWeight: atual ? 600 : 400,
           color: estado === 'bloqueada' ? 'var(--tx2)' : 'var(--tx)',
           minWidth: 0,
@@ -627,7 +637,7 @@ function AtividadeLinha({
       <span
         style={{
           flex: 'none',
-          fontSize: 14,
+          fontSize: 15,
           color: 'var(--tx2)',
           whiteSpace: 'nowrap',
         }}
@@ -643,8 +653,8 @@ function AtividadeLinha({
             flex: 'none',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 9,
-            fontSize: 14,
+            gap: 10,
+            fontSize: 15,
             color: 'var(--tx2)',
             whiteSpace: 'nowrap',
           }}
@@ -661,8 +671,8 @@ function AtividadeLinha({
             background: 'var(--imperial)',
             color: 'var(--bg)',
             borderRadius: 'var(--r-control)',
-            padding: '10px 18px',
-            fontSize: 14,
+            padding: '10px 22px',
+            fontSize: 15,
             fontWeight: 600,
             display: 'inline-flex',
             alignItems: 'center',
@@ -687,8 +697,10 @@ function AtividadeLinha({
     display: 'flex',
     alignItems: 'center',
     gap: 14,
-    padding: atual ? '9px 14px' : '13px 14px',
-    marginBottom: 2,
+    // 60px de passo entre as linhas: a atual encolhe o proprio padding
+    // para o botao, mais alto, nao esticar a faixa.
+    padding: atual ? '8px 16px' : '17px 16px',
+    marginBottom: 1,
     borderRadius: 'var(--r-control)',
     background: atual ? 'var(--bg)' : 'transparent',
     color: 'var(--tx)',
