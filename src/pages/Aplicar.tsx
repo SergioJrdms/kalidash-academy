@@ -77,13 +77,17 @@ export default function Aplicar() {
     return ord
   }, [daAba, destaque, nivel, skillId, ordem])
 
-  /** A última coisa que a pessoa concluiu, Lab ou Case. */
+  /**
+   * A última coisa em que a pessoa mexeu, Lab ou Case. Prefere o que foi
+   * concluído; na falta, mostra o rascunho mais recente — o cartão existe
+   * mesmo assim, só muda de estado.
+   */
   const ultima = useMemo(() => {
-    const feitos = labs.filter((l) => l.submission?.completed_at)
-    feitos.sort((a, b) =>
-      (b.submission!.completed_at ?? '').localeCompare(a.submission!.completed_at ?? ''),
-    )
-    return feitos[0] ?? null
+    const comSub = labs.filter((l) => l.submission)
+    const quando = (l: LabView) => l.submission!.completed_at ?? l.submission!.updated_at ?? ''
+    const feitos = comSub.filter((l) => l.submission!.completed_at)
+    const lista = feitos.length > 0 ? feitos : comSub
+    return [...lista].sort((a, b) => quando(b).localeCompare(quando(a)))[0] ?? null
   }, [labs])
 
   function aoSalvar(lab: LabView, sub: LabView['submission']) {
@@ -277,68 +281,53 @@ export default function Aplicar() {
           <CartaoLateral>
             <CabecaLateral titulo="Skills desenvolvidas" para="/perfil" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* chip redondo de 30px com o icone da competencia, como no desenho */}
               {skills.map((s) => (
-                <div key={s.id}>
-                  <div
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span
                     style={{
+                      flex: 'none',
+                      width: 30,
+                      height: 30,
+                      borderRadius: '50%',
+                      background: 'var(--bg)',
                       display: 'flex',
-                      alignItems: 'baseline',
-                      justifyContent: 'space-between',
-                      gap: 10,
-                      marginBottom: 6,
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    <span style={{ fontSize: 13 }}>{s.name}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tx3)' }}>
-                      {s.progress}%
+                    {s.icon && <Icon d={s.icon} size={15} stroke="var(--tx2)" />}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 12 }}>{s.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tx3)' }}>
+                        {s.progress}%
+                      </span>
                     </span>
-                  </div>
-                  <Barra percent={s.progress} />
+                    <Barra percent={s.progress} />
+                  </span>
                 </div>
               ))}
             </div>
           </CartaoLateral>
 
-          {ultima && (
-            <CartaoLateral>
-              <CabecaLateral titulo="Última aplicação" para="/perfil" />
-              <div style={{ marginBottom: 14 }}>
-                <Arte url={ultima.image_url} altura={90} raio={10} icone={24} />
-              </div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: VERDE,
-                  marginBottom: 8,
-                }}
-              >
-                <Icon d={NAV_ICON.check} size={12} width={2.6} stroke={VERDE} />
-                Concluído
-              </div>
-              <h3 className="k-display" style={{ fontSize: 16, lineHeight: 1.3, marginBottom: 8 }}>
-                {ultima.title}
-              </h3>
-              <div style={{ fontSize: 12, color: 'var(--tx3)', marginBottom: 10 }}>
-                {[ultima.minutes ? `${ultima.minutes} min` : null, dataCurta(ultima.submission!.completed_at!)]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </div>
-              {ultima.submission?.content && (
-                <p style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 16px' }}>
-                  {ultima.submission.content.length > 150
-                    ? `${ultima.submission.content.slice(0, 150)}…`
-                    : ultima.submission.content}
-                </p>
-              )}
-              <button onClick={() => setAberto(ultima)} style={botaoClaro}>
-                Ver minha aplicação
-              </button>
-            </CartaoLateral>
-          )}
+          <UltimaAplicacaoCard
+            lab={ultima}
+            onAbrir={setAberto}
+            onComecar={() => {
+              setAba('labs')
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          />
 
           <CartaoLateral>
             <Icon d={NAV_ICON.spark} size={18} stroke="var(--tx)" style={{ marginBottom: 14 }} />
@@ -596,28 +585,30 @@ function LinhaLab({
         </span>
       </span>
 
-      <span style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-        {concluido ? (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 11,
-              fontWeight: 700,
-              color: VERDE,
-            }}
-          >
-            <Icon d={NAV_ICON.check} size={12} width={2.6} stroke={VERDE} />
-            Concluído
-          </span>
-        ) : emAndamento ? (
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--bronze)' }}>
-            Em andamento
-          </span>
-        ) : (
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Novo</span>
-        )}
+      <span
+        style={{
+          flex: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 14,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <Estado concluido={concluido} emAndamento={emAndamento} />
+        {/* botao redondo no fim da linha, como no desenho */}
+        <span
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            border: '0.8px solid var(--line2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon d={NAV_ICON.arrow} size={14} stroke="var(--tx2)" />
+        </span>
       </span>
     </button>
   )
@@ -822,5 +813,145 @@ function LabModal({
         </button>
       </div>
     </Modal>
+  )
+}
+
+/** O estado do Lab: ponto colorido mais rotulo, como no desenho. */
+function Estado({ concluido, emAndamento }: { concluido: boolean; emAndamento: boolean }) {
+  if (concluido) {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 11,
+          fontWeight: 700,
+          color: VERDE,
+        }}
+      >
+        <Icon d={NAV_ICON.check} size={12} width={2.6} stroke={VERDE} />
+        Concluído
+      </span>
+    )
+  }
+
+  const cor = emAndamento ? 'var(--bronze)' : 'var(--tx2)'
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 12,
+        fontWeight: 500,
+        color: cor,
+      }}
+    >
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: cor }} />
+      {emAndamento ? 'Em andamento' : 'Novo'}
+    </span>
+  )
+}
+
+/**
+ * "Última aplicação". O cartão existe sempre: com o que foi concluído,
+ * com o rascunho em aberto, ou com o convite para a primeira. Antes ele
+ * sumia quando não havia nada, e a lateral ficava com um buraco.
+ */
+function UltimaAplicacaoCard({
+  lab,
+  onAbrir,
+  onComecar,
+}: {
+  lab: LabView | null
+  onAbrir: (l: LabView) => void
+  onComecar: () => void
+}) {
+  if (!lab) {
+    return (
+      <CartaoLateral>
+        <CabecaLateral titulo="Última aplicação" para="/perfil" />
+        <p style={{ fontSize: 12.5, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 16px' }}>
+          Você ainda não aplicou nenhum Lab. Quando aplicar, o registro fica aqui — com o que
+          você escreveu e a data.
+        </p>
+        <button onClick={onComecar} style={botaoClaro}>
+          Começar um Lab
+        </button>
+      </CartaoLateral>
+    )
+  }
+
+  const concluido = Boolean(lab.submission?.completed_at)
+  const quando = lab.submission?.completed_at ?? lab.submission?.updated_at ?? null
+
+  return (
+    <CartaoLateral>
+      <CabecaLateral titulo="Última aplicação" para="/perfil" />
+
+      {/* o selo fica sobre a arte, no canto superior esquerdo */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <Arte url={lab.image_url} altura={90} raio={10} icone={24} />
+        <span
+          style={{
+            position: 'absolute',
+            left: 10,
+            top: 10,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'var(--surface)',
+            borderRadius: 7,
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 700,
+            color: concluido ? VERDE : 'var(--bronze)',
+          }}
+        >
+          {concluido && <Icon d={NAV_ICON.check} size={12} width={2.6} stroke={VERDE} />}
+          {concluido ? 'Concluído' : 'Em andamento'}
+        </span>
+      </div>
+
+      <h3 className="k-display" style={{ fontSize: 16, lineHeight: 1.3, marginBottom: 10 }}>
+        {lab.title}
+      </h3>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          flexWrap: 'wrap',
+          marginBottom: 12,
+        }}
+      >
+        {lab.minutes && <Meta icone={NAV_ICON.clock}>{lab.minutes} min</Meta>}
+        {quando && <Meta icone={NAV_ICON.eventos}>{dataCurta(quando)}</Meta>}
+      </div>
+
+      {lab.submission?.content && (
+        <p style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 16px' }}>
+          {lab.submission.content.length > 150
+            ? `${lab.submission.content.slice(0, 150)}…`
+            : lab.submission.content}
+        </p>
+      )}
+
+      <button
+        onClick={() => onAbrir(lab)}
+        style={{
+          ...botaoClaro,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 9,
+        }}
+      >
+        {concluido ? 'Ver minha aplicação' : 'Continuar aplicação'}
+        <Icon d={NAV_ICON.arrow} size={14} stroke="var(--tx)" />
+      </button>
+    </CartaoLateral>
   )
 }
