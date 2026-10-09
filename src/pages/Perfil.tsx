@@ -4,32 +4,23 @@ import { useAuth } from '../hooks/useAuth'
 import { useCatalog } from '../hooks/useCatalog'
 import { initials } from '../lib/format'
 import { NAV_ICON } from '../lib/icons'
-import { track } from '../lib/analytics'
 import {
   issueCertificate,
   loadCertificates,
+  loadJourney,
   loadLabs,
   loadSkills,
   type CertificateView,
+  type JourneyView,
   type LabView,
   type SkillProgress,
 } from '../services/jornada'
-import {
-  Avatar,
-  Banner,
-  Icon,
-  Kicker,
-  Modal,
-  PageLoading,
-  ProgressBar,
-  Spinner,
-  inputStyle,
-} from '../components/ui'
+import { Banner, Icon, Kicker, Modal, PageLoading, Spinner, inputStyle } from '../components/ui'
 import PersonalizationModal from '../components/PersonalizationModal'
 
-const AI_LEAGUE_URL = import.meta.env.VITE_AI_LEAGUE_URL as string | undefined
+const VERDE = '#16a34a'
 
-/** Rótulo de nível a partir do progresso, como no design. */
+/** Rótulo de nível a partir do progresso, como no desenho. */
 function nivelDaCompetencia(p: number): string {
   if (p >= 70) return 'Avançado'
   if (p >= 40) return 'Intermediário'
@@ -38,28 +29,33 @@ function nivelDaCompetencia(p: number): string {
 }
 
 export default function Perfil() {
-  const { profile, isPaid, session, refreshProfile } = useAuth()
+  const { profile, session, refreshProfile, resetPassword } = useAuth()
   const { courses, loading } = useCatalog()
   const userId = session?.user.id ?? null
 
   const [skills, setSkills] = useState<SkillProgress[]>([])
   const [labs, setLabs] = useState<LabView[]>([])
   const [certs, setCerts] = useState<CertificateView[]>([])
+  const [journey, setJourney] = useState<JourneyView | null>(null)
   const [extra, setExtra] = useState(true)
+
   const [showPers, setShowPers] = useState(false)
   const [showConta, setShowConta] = useState(false)
   const [caseAberto, setCaseAberto] = useState<LabView | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     if (!userId) return
-    const [s, l, c] = await Promise.all([
+    const [s, l, c, j] = await Promise.all([
       loadSkills(userId).catch(() => [] as SkillProgress[]),
       loadLabs(userId).catch(() => [] as LabView[]),
       loadCertificates(userId).catch(() => [] as CertificateView[]),
+      loadJourney(userId).catch(() => null),
     ])
     setSkills(s)
     setLabs(l)
     setCerts(c)
+    setJourney(j)
     setExtra(false)
   }, [userId])
 
@@ -67,10 +63,7 @@ export default function Perfil() {
     void carregar()
   }, [carregar])
 
-  /**
-   * Cursos 100% concluídos que emitem certificado e ainda não têm o seu.
-   * A emissão é pedida ao banco, que confere a conclusão do seu lado.
-   */
+  /** Cursos 100% que emitem certificado e ainda não têm o seu. */
   useEffect(() => {
     if (loading || extra || !userId) return
     const pendentes = courses.filter(
@@ -101,356 +94,383 @@ export default function Perfil() {
     const aulas = courses.reduce((a, c) => a + c.completedCount, 0)
     const cursosFeitos = courses.filter((c) => c.lessonCount > 0 && c.progress === 100).length
     return [
-      { n: aulas, l: aulas === 1 ? 'aula concluída' : 'aulas concluídas' },
-      { n: cursosFeitos, l: cursosFeitos === 1 ? 'curso concluído' : 'cursos concluídos' },
-      { n: labsFeitos.length, l: labsFeitos.length === 1 ? 'Lab concluído' : 'Labs concluídos' },
-      { n: cases.length, l: cases.length === 1 ? 'case concluído' : 'cases concluídos' },
+      { icone: NAV_ICON.play, n: aulas, l: aulas === 1 ? 'aula concluída' : 'aulas concluídas' },
+      {
+        icone: NAV_ICON.book,
+        n: cursosFeitos,
+        l: cursosFeitos === 1 ? 'curso concluído' : 'cursos concluídos',
+      },
+      {
+        icone: NAV_ICON.spark,
+        n: labsFeitos.length,
+        l: labsFeitos.length === 1 ? 'Lab concluído' : 'Labs concluídos',
+      },
+      {
+        icone: NAV_ICON.note,
+        n: cases.length,
+        l: cases.length === 1 ? 'Case concluído' : 'Cases concluídos',
+      },
     ]
   }, [courses, labsFeitos, cases])
 
-  /** Atividade recente montada a partir do que já existe no banco. */
+  /** Atividade recente, montada do que já existe no banco. */
   const atividade = useMemo(() => {
-    const itens: { quando: string; texto: string }[] = []
+    const itens: { quando: string; prefixo: string; destaque: string; icone: string }[] = []
 
     for (const c of certs) {
-      itens.push({ quando: c.issued_at, texto: `Você concluiu ${c.course_title}` })
+      itens.push({
+        quando: c.issued_at,
+        prefixo: c.course_kind === 'trilha' ? 'Concluiu a trilha ' : 'Concluiu o curso ',
+        destaque: c.course_title,
+        icone: NAV_ICON.certificate,
+      })
     }
-    for (const l of [...labsFeitos, ...cases]) {
+    for (const l of labsFeitos) {
       itens.push({
         quando: l.submission!.completed_at!,
-        texto: `Você aplicou ${l.title}`,
+        prefixo: 'Finalizou o Lab: ',
+        destaque: l.title,
+        icone: NAV_ICON.spark,
+      })
+    }
+    for (const l of cases) {
+      itens.push({
+        quando: l.submission!.completed_at!,
+        prefixo: 'Concluiu o case: ',
+        destaque: l.title,
+        icone: NAV_ICON.note,
       })
     }
     for (const c of courses) {
-      if (c.lastViewedAt) {
-        itens.push({ quando: c.lastViewedAt, texto: `Você avançou em ${c.title}` })
+      if (c.lastViewedAt && c.progress < 100) {
+        itens.push({
+          quando: c.lastViewedAt,
+          prefixo: 'Avançou em ',
+          destaque: c.title,
+          icone: NAV_ICON.play,
+        })
       }
     }
 
-    return itens.sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 6)
+    return itens.sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 5)
   }, [certs, labsFeitos, cases, courses])
+
+  async function compartilhar() {
+    const aulas = numeros[0].n
+    const texto = `${profile?.full_name ?? 'Eu'} na Kalidash Academy — ${aulas} ${
+      aulas === 1 ? 'aula concluída' : 'aulas concluídas'
+    }, ${labsFeitos.length} Labs aplicados e ${certs.length} ${
+      certs.length === 1 ? 'certificado' : 'certificados'
+    }. ${window.location.origin}`
+
+    try {
+      if (navigator.share) await navigator.share({ text: texto })
+      else {
+        await navigator.clipboard.writeText(texto)
+        setAviso('Resumo do perfil copiado.')
+      }
+    } catch {
+      /* a pessoa cancelou o compartilhamento */
+    }
+  }
 
   if (loading || extra) return <PageLoading />
 
-  return (
-    <div className="k-page" style={{ padding: '48px 48px 100px', maxWidth: 1280 }}>
-      {/* ---------- cabeçalho ---------- */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 24,
-          flexWrap: 'wrap',
-          marginBottom: 36,
-        }}
-      >
-        <Avatar name={initials(profile?.full_name ?? 'U')} size={72} />
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <h1 className="k-display" style={{ fontSize: 34, lineHeight: 1.1, marginBottom: 8 }}>
-            {profile?.full_name || 'Seu perfil'}
-          </h1>
-          <div style={{ fontSize: 14.5, color: 'var(--bronze)', marginBottom: 10 }}>
-            {[profile?.headline, profile?.area, profile?.company].filter(Boolean).join(' · ') ||
-              'Complete seu perfil'}
-          </div>
-          <p style={{ fontSize: 15, color: 'var(--tx2)', margin: 0 }}>
-            Seu histórico de aprendizagem, aplicação e competências.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowConta(true)}
-          style={{
-            flex: 'none',
-            background: 'transparent',
-            border: '0.8px solid var(--line2)',
-            color: 'var(--tx)',
-            borderRadius: 'var(--r-control)',
-            padding: '11px 20px',
-            fontSize: 13.5,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Editar perfil
-        </button>
-      </div>
+  const linhaTrilha = [journey?.title, profile?.level].filter(Boolean).join(' · ')
 
-      {/* ---------- números ---------- */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 48,
-          flexWrap: 'wrap',
-          paddingBottom: 32,
-          marginBottom: 36,
-          borderBottom: '1px solid var(--line)',
-        }}
+  return (
+    <div className="k-page" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
+      {aviso && (
+        <div style={{ marginBottom: 18 }}>
+          <Banner kind="ok">{aviso}</Banner>
+        </div>
+      )}
+
+      {/* ---------------- cabeçalho ---------------- */}
+      <section className="k-card" style={{ padding: '28px 32px', marginBottom: 20 }}>
+        <div className="k-stack-mobile" style={{ display: 'flex', gap: 28 }}>
+          <span
+            style={{
+              flex: 'none',
+              width: 112,
+              height: 112,
+              borderRadius: '50%',
+              border: '2.4px solid var(--line)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 28,
+              fontWeight: 600,
+              fontFamily: 'var(--font-display)',
+              color: 'var(--tx)',
+            }}
+          >
+            {initials(profile?.full_name ?? 'U')}
+          </span>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 className="k-display k-page-title is-52" style={{ margin: '0 0 10px' }}>
+              {profile?.full_name || 'Seu perfil'}
+            </h1>
+
+            {linhaTrilha && (
+              <div style={{ fontSize: 16, color: 'var(--tx)', marginBottom: 8 }}>
+                {linhaTrilha}
+              </div>
+            )}
+
+            <p style={{ fontSize: 14, color: 'var(--tx2)', margin: '0 0 20px' }}>
+              Seu histórico de aprendizagem, aplicação e competências.
+            </p>
+
+            <button
+              onClick={() => void compartilhar()}
+              className="k-hoverable"
+              style={{
+                background: 'transparent',
+                border: '0.8px solid var(--line2)',
+                borderRadius: 99,
+                padding: '9px 20px',
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--tx)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 9,
+              }}
+            >
+              <Icon d={NAV_ICON.aplicar} size={14} stroke="var(--tx2)" />
+              Compartilhar perfil
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- números ---------------- */}
+      <section
+        className="k-card"
+        style={{ padding: '22px 32px', display: 'flex', flexWrap: 'wrap', marginBottom: 20 }}
       >
         {numeros.map((x) => (
-          <div key={x.l}>
-            <div className="k-display" style={{ fontSize: 34, lineHeight: 1 }}>
-              {x.n}
+          <div
+            key={x.l}
+            style={{ flex: '1 1 180px', display: 'flex', alignItems: 'flex-start', gap: 15 }}
+          >
+            <Icon d={x.icone} size={18} stroke="var(--bronze)" style={{ marginTop: 6 }} />
+            <div>
+              <div className="k-display" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>
+                {x.n}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--tx2)', marginTop: 9 }}>{x.l}</div>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--tx2)', marginTop: 7 }}>{x.l}</div>
           </div>
         ))}
-      </div>
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)', gap: 20 }}>
-        {/* ---------- coluna principal ---------- */}
-        <div style={{ minWidth: 0 }}>
-          <section style={{ marginBottom: 40 }}>
-            <Kicker style={{ marginBottom: 18 }}>Competências</Kicker>
-            {skills.length === 0 ? (
-              <Vazio>As competências aparecem conforme você avança nas trilhas.</Vazio>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                {skills.map((s) => (
-                  <div key={s.id}>
+      {/* ---------------- grade 2x2 ---------------- */}
+      <div className="k-perfil-grid">
+        {/* competências */}
+        <section className="k-card" style={{ padding: '22px 24px' }}>
+          <CabecaCartao titulo="Competências" para="/jornada" />
+          {skills.length === 0 ? (
+            <Vazio>As competências aparecem conforme você avança nas trilhas.</Vazio>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {skills.map((s) => (
+                <div key={s.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
+                  {s.icon && (
+                    <Icon d={s.icon} size={17} stroke="var(--tx2)" style={{ marginTop: 2 }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
                         display: 'flex',
-                        alignItems: 'baseline',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         gap: 12,
                         marginBottom: 8,
                       }}
                     >
-                      <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{s.name}</span>
-                      <span style={{ fontSize: 12.5, color: 'var(--bronze)' }}>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>{s.name}</span>
+                      <span
+                        style={{
+                          background: 'rgba(168,138,88,.06)',
+                          color: 'var(--bronze)',
+                          borderRadius: 6,
+                          padding: '3px 10px',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {nivelDaCompetencia(s.progress)}
                       </span>
-                      <span style={{ fontSize: 13, color: 'var(--tx2)', width: 40, textAlign: 'right' }}>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Barra percent={s.progress} />
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--tx2)',
+                          width: 32,
+                          textAlign: 'right',
+                        }}
+                      >
                         {s.progress}%
                       </span>
                     </div>
-                    <ProgressBar percent={s.progress} height={5} />
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
-          <section style={{ marginBottom: 40 }}>
-            <Kicker style={{ marginBottom: 18 }}>Certificados</Kicker>
-            {certs.length === 0 ? (
-              <Vazio>
-                Conclua um curso que emite certificado e ele aparece aqui, com o código de
-                verificação.
-              </Vazio>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {certs.map((c) => (
-                  <div
-                    key={c.id}
-                    className="k-card"
-                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 18 }}
-                  >
-                    <span
-                      style={{
-                        flex: 'none',
-                        width: 38,
-                        height: 38,
-                        borderRadius: '50%',
-                        background: 'var(--bg)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon d={NAV_ICON.check} size={16} width={2.4} stroke="var(--imperial)" />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 600, marginBottom: 4 }}>
-                        {c.course_title}
-                      </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--tx2)' }}>
-                        {c.course_kind === 'trilha' ? 'Trilha' : 'Curso'} · Kalidash Academy ·
-                        Concluído em{' '}
-                        {new Date(c.issued_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        flex: 'none',
-                        fontFamily: 'var(--font-mono, monospace)',
-                        fontSize: 11.5,
-                        color: 'var(--tx3)',
-                        letterSpacing: '0.06em',
-                      }}
-                    >
-                      {c.code}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+        {/* certificados */}
+        <section className="k-card" style={{ padding: '22px 24px' }}>
+          <CabecaCartao titulo="Certificados" para="/explorar" />
+          {certs.length === 0 ? (
+            <Vazio>
+              Conclua um curso que emite certificado e ele aparece aqui, com o código de
+              verificação.
+            </Vazio>
+          ) : (
+            <div>
+              {certs.map((c, i) => (
+                <LinhaCertificado key={c.id} cert={c} primeira={i === 0} />
+              ))}
+            </div>
+          )}
+        </section>
 
-          <section>
-            <Kicker style={{ marginBottom: 18 }}>Cases</Kicker>
-            {cases.length === 0 ? (
-              <Vazio>
-                Os cases que você concluir em <Link to="/aplicar" style={{ color: 'var(--bronze)' }}>Aplicar</Link>{' '}
-                ficam registrados aqui.
-              </Vazio>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {cases.map((l) => (
-                  <button
-                    key={l.id}
-                    onClick={() => setCaseAberto(l)}
-                    className="k-card k-hoverable"
+        {/* cases */}
+        <section className="k-card" style={{ padding: '22px 24px' }}>
+          <CabecaCartao titulo="Cases" para="/aplicar" />
+          {cases.length === 0 ? (
+            <Vazio>
+              Os cases que você concluir em{' '}
+              <Link to="/aplicar" style={{ color: 'var(--bronze)' }}>
+                Aplicar
+              </Link>{' '}
+              ficam registrados aqui.
+            </Vazio>
+          ) : (
+            <div className="k-cases-grid">
+              {cases.map((l) => (
+                <CelulaCase key={l.id} lab={l} onAbrir={() => setCaseAberto(l)} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* atividade recente */}
+        <section className="k-card" style={{ padding: '22px 24px' }}>
+          <CabecaCartao titulo="Atividade recente" para="/jornada" />
+          {atividade.length === 0 ? (
+            <Vazio>
+              Nada por aqui ainda. Comece por{' '}
+              <Link to="/jornada" style={{ color: 'var(--bronze)' }}>
+                Minha Jornada
+              </Link>
+              .
+            </Vazio>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              {/* o fio da linha do tempo, atrás dos ícones */}
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 15.5,
+                  top: 18,
+                  bottom: 18,
+                  width: 1,
+                  background: 'var(--line)',
+                }}
+              />
+              {atividade.map((a, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 14,
+                    padding: '10px 0',
+                  }}
+                >
+                  <span
                     style={{
-                      padding: 20,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: 'var(--surface)',
+                      flex: 'none',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: 'var(--bg)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
+                    <Icon d={a.icone} size={15} stroke="var(--bronze)" />
+                  </span>
+                  <span style={{ minWidth: 0, paddingTop: 2 }}>
+                    <span style={{ display: 'block', fontSize: 13, lineHeight: 1.45 }}>
+                      {a.prefixo}
+                      <strong style={{ fontWeight: 600 }}>{a.destaque}</strong>
+                    </span>
                     <span
                       style={{
-                        display: 'inline-block',
-                        background: 'rgba(40,24,59,.07)',
-                        color: 'var(--imperial)',
-                        borderRadius: 999,
-                        padding: '4px 11px',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: '0.07em',
-                        textTransform: 'uppercase',
-                        marginBottom: 11,
+                        display: 'block',
+                        fontSize: 11,
+                        color: 'var(--tx3)',
+                        marginTop: 4,
                       }}
                     >
-                      Case
+                      {tempoRelativo(a.quando)}
                     </span>
-                    <span style={{ display: 'block', fontSize: 16, fontWeight: 600, marginBottom: 7 }}>
-                      {l.title}
-                    </span>
-                    {l.submission?.content && (
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: 14,
-                          color: 'var(--tx2)',
-                          lineHeight: 1.6,
-                          marginBottom: 10,
-                        }}
-                      >
-                        {l.submission.content.length > 220
-                          ? `${l.submission.content.slice(0, 220)}…`
-                          : l.submission.content}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 13, color: 'var(--bronze)' }}>Ver case →</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ---------- coluna lateral ---------- */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
-          <section className="k-card" style={{ padding: 22 }}>
-            <Kicker style={{ marginBottom: 16 }}>Atividade recente</Kicker>
-            {atividade.length === 0 ? (
-              <p style={{ fontSize: 13.5, color: 'var(--tx2)', margin: 0, lineHeight: 1.6 }}>
-                Nada por aqui ainda. Comece por{' '}
-                <Link to="/jornada" style={{ color: 'var(--bronze)' }}>
-                  Minha Jornada
-                </Link>
-                .
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {atividade.map((a, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 11 }}>
-                    <span
-                      style={{
-                        flex: 'none',
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: 'var(--champagne)',
-                        marginTop: 6,
-                      }}
-                    />
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13.5, lineHeight: 1.45 }}>
-                        {a.texto}
-                      </span>
-                      <span style={{ display: 'block', fontSize: 12, color: 'var(--tx3)', marginTop: 3 }}>
-                        {tempoRelativo(a.quando)}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="k-card" style={{ padding: 22 }}>
-            <Kicker style={{ marginBottom: 16 }}>Configurações da conta</Kicker>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <LinhaConfig label="Dados da conta" onClick={() => setShowConta(true)} />
-              <LinhaConfig label="Preferências de conteúdo" onClick={() => setShowPers(true)} />
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '13px 0 4px',
-                }}
-              >
-                <span style={{ flex: 1, fontSize: 14 }}>Acesso</span>
-                <span style={{ fontSize: 12.5, color: 'var(--tx2)' }}>
-                  {isPaid ? 'Premium liberado' : 'Gratuito'}
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--tx3)', lineHeight: 1.55 }}>
-                {profile?.email}
-              </div>
+                  </span>
+                </div>
+              ))}
             </div>
-          </section>
-
-          <section className="k-card" style={{ padding: 22 }}>
-            <Kicker style={{ marginBottom: 12 }}>AI League</Kicker>
-            <p style={{ fontSize: 13.5, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 16px' }}>
-              Continue a conversa com outros gestores que estão aplicando isso na operação.
-            </p>
-            {AI_LEAGUE_URL ? (
-              <a
-                href={AI_LEAGUE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => track('community_whatsapp_clicked', { origem: 'perfil' })}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 9,
-                  background: 'transparent',
-                  border: '0.8px solid var(--line2)',
-                  color: 'var(--tx)',
-                  borderRadius: 'var(--r-control)',
-                  padding: '11px 0',
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                }}
-              >
-                Abrir WhatsApp
-                <Icon d={NAV_ICON.arrow} size={15} stroke="var(--tx2)" />
-              </a>
-            ) : (
-              <span style={{ fontSize: 12, color: 'var(--tx3)' }}>Link em configuração</span>
-            )}
-          </section>
-        </aside>
+          )}
+        </section>
       </div>
+
+      {/* ---------------- configurações ---------------- */}
+      <section className="k-card" style={{ padding: '22px 24px', marginTop: 20 }}>
+        <Kicker style={{ fontSize: 11, letterSpacing: '1px', marginBottom: 18 }}>
+          Configurações da conta
+        </Kicker>
+        <div className="k-config-grid">
+          <ItemConfig
+            icone={NAV_ICON.perfil}
+            titulo="Dados da conta"
+            texto="Gerencie suas informações pessoais e profissionais."
+            onClick={() => setShowConta(true)}
+          />
+          <ItemConfig
+            icone={NAV_ICON.explorar}
+            titulo="Preferências"
+            texto="Personalize sua experiência na plataforma."
+            onClick={() => setShowPers(true)}
+          />
+          <ItemConfig
+            icone={NAV_ICON.admin}
+            titulo="Segurança"
+            texto="Gerencie sua senha e as configurações de acesso."
+            onClick={async () => {
+              if (!profile?.email) return
+              try {
+                await resetPassword(profile.email)
+                setAviso('Enviamos um link para você criar uma nova senha.')
+              } catch {
+                setAviso('Não foi possível enviar o link agora.')
+              }
+            }}
+          />
+        </div>
+      </section>
 
       {showPers && (
         <PersonalizationModal
@@ -460,15 +480,12 @@ export default function Perfil() {
       )}
 
       {showConta && (
-        <ContaModal
-          onClose={() => setShowConta(false)}
-          onSaved={() => void refreshProfile()}
-        />
+        <ContaModal onClose={() => setShowConta(false)} onSaved={() => void refreshProfile()} />
       )}
 
       {caseAberto && (
         <Modal onClose={() => setCaseAberto(null)} maxWidth={640}>
-          <Kicker style={{ marginBottom: 12 }}>Case</Kicker>
+          <Kicker style={{ letterSpacing: '1px', marginBottom: 12 }}>Case</Kicker>
           <h2 className="k-display" style={{ fontSize: 25, lineHeight: 1.22, marginBottom: 10 }}>
             {caseAberto.title}
           </h2>
@@ -489,47 +506,299 @@ export default function Perfil() {
   )
 }
 
-function LinhaConfig({ label, onClick }: { label: string; onClick: () => void }) {
+// ---------------------------------------------------------------------
+
+function CabecaCartao({ titulo, para }: { titulo: string; para: string }) {
   return (
-    <button
-      onClick={onClick}
+    <div
       style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: 12,
-        background: 'transparent',
-        border: 'none',
-        borderBottom: '1px solid var(--line)',
-        padding: '13px 0',
-        fontSize: 14,
-        color: 'var(--tx)',
-        cursor: 'pointer',
-        textAlign: 'left',
+        marginBottom: 18,
       }}
     >
-      <span style={{ flex: 1 }}>{label}</span>
-      <Icon d="M9 6l6 6-6 6" size={15} stroke="var(--tx3)" />
+      <Kicker style={{ fontSize: 11, letterSpacing: '1px' }}>{titulo}</Kicker>
+      <Link
+        to={para}
+        style={{
+          fontSize: 12.5,
+          color: 'var(--bronze)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Ver todas
+        <Icon d={NAV_ICON.arrow} size={13} stroke="var(--bronze)" />
+      </Link>
+    </div>
+  )
+}
+
+function Barra({ percent }: { percent: number }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        height: 5,
+        borderRadius: 999,
+        background: 'var(--line)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          height: '100%',
+          width: `${percent}%`,
+          background: 'var(--bronze)',
+          borderRadius: 999,
+          transition: 'width .3s',
+        }}
+      />
+    </div>
+  )
+}
+
+function LinhaCertificado({ cert, primeira }: { cert: CertificateView; primeira: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '14px 0',
+        borderTop: primeira ? 'none' : '0.8px solid var(--line)',
+      }}
+    >
+      <span
+        style={{
+          flex: 'none',
+          width: 48,
+          height: 48,
+          borderRadius: 10,
+          background: 'var(--bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon d={NAV_ICON.certificate} size={20} stroke="var(--bronze)" />
+      </span>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="k-display" style={{ fontSize: 15, marginBottom: 4 }}>
+          {cert.course_title}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--tx3)' }}>
+          {cert.course_kind === 'trilha' ? 'Trilha' : 'Curso'} · Kalidash Academy
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 2 }}>
+          Concluído em{' '}
+          {new Date(cert.issued_at).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })}
+        </div>
+      </div>
+
+      <div style={{ flex: 'none', position: 'relative', width: 72 }}>
+        <span
+          style={{
+            display: 'flex',
+            width: 72,
+            height: 52,
+            borderRadius: 8,
+            background: 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: 9.5,
+              color: 'var(--champagne)',
+              letterSpacing: '0.06em',
+            }}
+          >
+            {cert.code}
+          </span>
+        </span>
+        <span
+          style={{
+            position: 'absolute',
+            left: -6,
+            bottom: -11,
+            background: 'rgba(34,197,94,.1)',
+            color: VERDE,
+            borderRadius: 99,
+            padding: '3px 8px',
+            fontSize: 10,
+            fontWeight: 700,
+          }}
+        >
+          Concluído
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function CelulaCase({ lab, onAbrir }: { lab: LabView; onAbrir: () => void }) {
+  return (
+    <button
+      onClick={onAbrir}
+      style={{
+        background: 'var(--surface2)',
+        border: '0.8px solid var(--line)',
+        borderRadius: 12,
+        padding: 0,
+        overflow: 'hidden',
+        textAlign: 'left',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <span
+        style={{
+          display: 'flex',
+          height: 110,
+          background: lab.image_url
+            ? `center/cover no-repeat url(${JSON.stringify(lab.image_url)})`
+            : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {!lab.image_url && (
+          <Icon
+            d={NAV_ICON.note}
+            size={26}
+            stroke="var(--champagne)"
+            width={1.1}
+            style={{ opacity: 0.45 }}
+          />
+        )}
+      </span>
+
+      <span style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            color: 'var(--tx3)',
+            marginBottom: 7,
+          }}
+        >
+          CASE
+        </span>
+        <span
+          className="k-display"
+          style={{ display: 'block', fontSize: 15, lineHeight: 1.3, marginBottom: 8 }}
+        >
+          {lab.title}
+        </span>
+        {lab.submission?.content && (
+          <span
+            style={{
+              display: 'block',
+              fontSize: 12,
+              color: 'var(--tx2)',
+              lineHeight: 1.5,
+              marginBottom: 12,
+            }}
+          >
+            {lab.submission.content.length > 90
+              ? `${lab.submission.content.slice(0, 90)}…`
+              : lab.submission.content}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--imperial)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 7,
+          }}
+        >
+          Ver case
+          <Icon d={NAV_ICON.arrow} size={13} stroke="var(--imperial)" />
+        </span>
+      </span>
+    </button>
+  )
+}
+
+function ItemConfig({
+  icone,
+  titulo,
+  texto,
+  onClick,
+}: {
+  icone: string
+  titulo: string
+  texto: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="k-row"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 14,
+        background: 'transparent',
+        border: 'none',
+        borderRadius: 10,
+        padding: '16px 12px',
+        textAlign: 'left',
+        cursor: 'pointer',
+        color: 'var(--tx)',
+      }}
+    >
+      <span
+        style={{
+          flex: 'none',
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: 'var(--bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon d={icone} size={18} stroke="var(--bronze)" />
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+          {titulo}
+        </span>
+        <span style={{ display: 'block', fontSize: 12, color: 'var(--tx2)', lineHeight: 1.5 }}>
+          {texto}
+        </span>
+      </span>
     </button>
   )
 }
 
 function Vazio({ children }: { children: React.ReactNode }) {
   return (
-    <p
-      style={{
-        fontSize: 14,
-        color: 'var(--tx2)',
-        lineHeight: 1.6,
-        margin: 0,
-        maxWidth: 520,
-      }}
-    >
-      {children}
-    </p>
+    <p style={{ fontSize: 13.5, color: 'var(--tx2)', lineHeight: 1.65, margin: 0 }}>{children}</p>
   )
 }
 
-/** Nome, empresa e cargo. O e-mail e o acesso não se editam aqui. */
+/** Nome, cargo e empresa. O e-mail e o acesso não se editam aqui. */
 function ContaModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { profile, updateProfile } = useAuth()
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
@@ -569,32 +838,27 @@ function ContaModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 22 }}>
-        <label>
-          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 500, marginBottom: 6 }}>
-            Nome
-          </span>
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} />
-        </label>
-        <label>
-          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 500, marginBottom: 6 }}>
-            Cargo
-          </span>
-          <input
-            value={headline}
-            onChange={(e) => setHeadline(e.target.value)}
-            placeholder="Head de Operações"
-            style={inputStyle}
-          />
-        </label>
-        <label>
-          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 500, marginBottom: 6 }}>
-            Empresa
-          </span>
-          <input value={company} onChange={(e) => setCompany(e.target.value)} style={inputStyle} />
-        </label>
+        {(
+          [
+            ['Nome', fullName, setFullName, ''],
+            ['Cargo', headline, setHeadline, 'Head de Operações'],
+            ['Empresa', company, setCompany, ''],
+          ] as const
+        ).map(([rotulo, valor, set, ph]) => (
+          <label key={rotulo}>
+            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 500, marginBottom: 6 }}>
+              {rotulo}
+            </span>
+            <input
+              value={valor}
+              onChange={(e) => set(e.target.value)}
+              placeholder={ph}
+              style={inputStyle}
+            />
+          </label>
+        ))}
         <div style={{ fontSize: 12, color: 'var(--tx3)', lineHeight: 1.5 }}>
-          E-mail: {profile?.email}. Para trocar o e-mail ou a senha, use "Esqueci minha senha" na
-          tela de login.
+          E-mail: {profile?.email}. Para trocar a senha, use "Segurança".
         </div>
       </div>
 
@@ -628,7 +892,11 @@ function tempoRelativo(iso: string): string {
   const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
   if (dias <= 0) return 'Hoje'
   if (dias === 1) return '1 dia atrás'
-  if (dias < 30) return `${dias} dias atrás`
-  const meses = Math.floor(dias / 30)
-  return meses === 1 ? '1 mês atrás' : `${meses} meses atrás`
+  if (dias < 7) return `${dias} dias atrás`
+  if (dias < 30) {
+    const s = Math.floor(dias / 7)
+    return s === 1 ? '1 semana atrás' : `${s} semanas atrás`
+  }
+  const m = Math.floor(dias / 30)
+  return m === 1 ? '1 mês atrás' : `${m} meses atrás`
 }

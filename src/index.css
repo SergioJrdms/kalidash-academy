@@ -541,3 +541,38 @@ mux-player {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------------------------------------------------------------
+   tela de Perfil
+   --------------------------------------------------------------------- */
+
+/* Quatro cartoes em 2x2, como no desenho. */
+.k-perfil-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+/* Dois cases lado a lado dentro do cartao. */
+.k-cases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.k-config-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+@media (max-width: 1060px) {
+  .k-perfil-grid,
+  .k-config-grid {
+    grid-template-columns: 1fr;
+  }
+  .k-config-grid {
+    gap: 4px;
+  }
+}
