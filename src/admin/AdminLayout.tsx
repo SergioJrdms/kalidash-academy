@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 const LINKS = [
   { to: '/admin/cursos', label: 'Conteúdos' },
   { to: '/admin/eventos', label: 'Eventos' },
+  { to: '/admin/comunidade', label: 'Comunidade' },
   { to: '/admin/usuarios', label: 'Usuários' },
   { to: '/admin/insights', label: 'Insights' },
 ]

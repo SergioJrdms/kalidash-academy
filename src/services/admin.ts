@@ -190,3 +190,60 @@ export async function adminSetRole(
     await supabase.from('profiles').update({ role }).eq('id', userId).select('*').single(),
   )
 }
+
+// ---------------------------------------------------------------------
+// Comunidade — diretório de networking e vagas.
+//
+// A policy profiles_update_admin deixa o admin editar qualquer perfil; o
+// trigger continua bloqueando role, access_level e e-mail por caminhos
+// que não sejam os de cima.
+// ---------------------------------------------------------------------
+
+export type AdminJob = {
+  id: string
+  title: string
+  company: string
+  location: string | null
+  contract_type: string | null
+  description: string | null
+  apply_url: string | null
+  status: 'draft' | 'published'
+  posted_at: string
+}
+
+/** Todos os perfis, com os campos que o diretório mostra. */
+export async function adminListDirectory(): Promise<Profile[]> {
+  return unwrap(
+    await supabase.from('profiles').select('*').order('full_name', { ascending: true }),
+  )
+}
+
+export async function adminUpdateDirectory(
+  userId: string,
+  patch: Pick<Profile, 'community_opt_in' | 'headline' | 'company' | 'interest' | 'linkedin_url'>,
+): Promise<Profile> {
+  return unwrap(
+    await supabase.from('profiles').update(patch).eq('id', userId).select('*').single(),
+  )
+}
+
+export async function adminListJobs(): Promise<AdminJob[]> {
+  return unwrap(
+    await supabase.from('job_openings').select('*').order('posted_at', { ascending: false }),
+  )
+}
+
+export async function adminCreateJob(patch: Partial<AdminJob>): Promise<AdminJob> {
+  return unwrap(await supabase.from('job_openings').insert(patch).select('*').single())
+}
+
+export async function adminUpdateJob(id: string, patch: Partial<AdminJob>): Promise<AdminJob> {
+  return unwrap(
+    await supabase.from('job_openings').update(patch).eq('id', id).select('*').single(),
+  )
+}
+
+export async function adminDeleteJob(id: string): Promise<void> {
+  const { error } = await supabase.from('job_openings').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}

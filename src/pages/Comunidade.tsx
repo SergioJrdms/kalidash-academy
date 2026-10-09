@@ -4,15 +4,10 @@ import { initials } from '../lib/format'
 import { NAV_ICON } from '../lib/icons'
 import { track } from '../lib/analytics'
 import {
-  acceptConnection,
   loadCommunityStats,
-  loadConnections,
   loadDirectory,
   loadJobs,
-  removeConnection,
-  requestConnection,
   saveCommunityProfile,
-  type Connection,
   type DirectoryPerson,
   type JobOpening,
 } from '../services/comunidade'
@@ -28,24 +23,16 @@ export default function Comunidade() {
   const userId = session?.user.id ?? null
 
   const [pessoas, setPessoas] = useState<DirectoryPerson[]>([])
-  const [conexoes, setConexoes] = useState<Connection[]>([])
   const [vagas, setVagas] = useState<JobOpening[]>([])
   const [stats, setStats] = useState({ members: 0, jobs: 0 })
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
-  const [ocupado, setOcupado] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setErro(null)
     try {
-      const [p, c, v, s] = await Promise.all([
-        loadDirectory(),
-        userId ? loadConnections(userId) : Promise.resolve([] as Connection[]),
-        loadJobs(),
-        loadCommunityStats(),
-      ])
+      const [p, v, s] = await Promise.all([loadDirectory(), loadJobs(), loadCommunityStats()])
       setPessoas(p)
-      setConexoes(c)
       setVagas(v)
       setStats(s)
     } catch (e) {
@@ -61,58 +48,16 @@ export default function Comunidade() {
 
   const noDiretorio = Boolean(profile?.community_opt_in)
 
-  const relacao = useCallback(
-    (outroId: string) =>
-      conexoes.find((c) => c.requester_id === outroId || c.addressee_id === outroId) ?? null,
-    [conexoes],
-  )
-
   const sugestoes = useMemo(() => pessoas.filter((p) => p.id !== userId), [pessoas, userId])
-  const pedidos = useMemo(
-    () => conexoes.filter((c) => c.status === 'pending' && c.addressee_id === userId),
-    [conexoes, userId],
-  )
-  const disponiveis = useMemo(
-    () => sugestoes.filter((p) => !relacao(p.id)).length,
-    [sugestoes, relacao],
-  )
 
-  async function conectar(p: DirectoryPerson) {
-    if (!userId) return
-    setOcupado(p.id)
-    try {
-      const nova = await requestConnection(userId, p.id)
-      setConexoes((prev) => [...prev, nova])
-      track('connection_requested', { pessoa_id: p.id })
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não foi possível enviar o pedido.')
-    } finally {
-      setOcupado(null)
-    }
-  }
+  /** Quem dá para alcançar: todo mundo do diretório que não é você. */
+  const disponiveis = sugestoes.length
 
-  async function aceitar(c: Connection) {
-    setOcupado(c.id)
-    try {
-      await acceptConnection(c.id)
-      setConexoes((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: 'accepted' } : x)))
-      setPessoas(await loadDirectory())
-      track('connection_accepted', { pessoa_id: c.requester_id })
-    } finally {
-      setOcupado(null)
-    }
-  }
 
-  async function desfazer(c: Connection) {
-    setOcupado(c.id)
-    try {
-      await removeConnection(c.id)
-      setConexoes((prev) => prev.filter((x) => x.id !== c.id))
-      setPessoas(await loadDirectory())
-    } finally {
-      setOcupado(null)
-    }
-  }
+
+
+
+
 
   if (loading) return <PageLoading />
 
@@ -216,59 +161,6 @@ export default function Comunidade() {
               link={noDiretorio && sugestoes.length > 3 ? 'Ver todos' : undefined}
             />
 
-            {/* Pedidos recebidos não existem no desenho, mas sem eles ninguém
-                aceita uma conexão. Aparecem só quando há algum. */}
-            {pedidos.length > 0 && (
-              <div
-                style={{
-                  background: 'var(--bg)',
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  marginBottom: 18,
-                }}
-              >
-                <div style={{ fontSize: 12, color: 'var(--tx2)', marginBottom: 12 }}>
-                  {pedidos.length === 1
-                    ? '1 pessoa quer se conectar com você'
-                    : `${pedidos.length} pessoas querem se conectar com você`}
-                </div>
-                {pedidos.map((c) => {
-                  const p = pessoas.find((x) => x.id === c.requester_id)
-                  return (
-                    <div
-                      key={c.id}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}
-                    >
-                      <AvatarRedondo nome={p?.full_name ?? '?'} indice={0} tamanho={32} />
-                      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600 }}>
-                        {p?.full_name ?? 'Alguém da comunidade'}
-                      </span>
-                      <button
-                        onClick={() => void aceitar(c)}
-                        disabled={ocupado === c.id}
-                        style={{ ...botaoContorno, width: 'auto', padding: '7px 14px' }}
-                      >
-                        Aceitar
-                      </button>
-                      <button
-                        onClick={() => void desfazer(c)}
-                        disabled={ocupado === c.id}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--tx3)',
-                          fontSize: 12,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Recusar
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
             {/* O convite vira uma faixa, nao substitui a grade: antes, quem
                 ainda nao tinha entrado no diretorio nao via ninguem. */}
             {!noDiretorio && (
@@ -290,16 +182,7 @@ export default function Comunidade() {
             ) : (
               <div className="k-pessoas-grid">
                 {sugestoes.slice(0, 6).map((p, i) => (
-                  <CartaoPessoa
-                    key={p.id}
-                    pessoa={p}
-                    indice={i}
-                    relacao={relacao(p.id)}
-                    souEu={userId}
-                    ocupado={ocupado === p.id || ocupado === relacao(p.id)?.id}
-                    onConectar={() => void conectar(p)}
-                    onDesfazer={(c) => void desfazer(c)}
-                  />
+                  <CartaoPessoa key={p.id} pessoa={p} indice={i} />
                 ))}
               </div>
             )}
@@ -396,10 +279,12 @@ function AvatarRedondo({
   nome,
   indice,
   tamanho = 42,
+  url,
 }: {
   nome: string
   indice: number
   tamanho?: number
+  url?: string | null
 }) {
   return (
     <span
@@ -408,7 +293,9 @@ function AvatarRedondo({
         width: tamanho,
         height: tamanho,
         borderRadius: '50%',
-        background: CORES_AVATAR[indice % CORES_AVATAR.length],
+        background: url
+          ? `center/cover no-repeat url(${JSON.stringify(url)})`
+          : CORES_AVATAR[indice % CORES_AVATAR.length],
         color: 'var(--bg)',
         display: 'flex',
         alignItems: 'center',
@@ -417,31 +304,12 @@ function AvatarRedondo({
         fontWeight: 600,
       }}
     >
-      {initials(nome)}
+      {url ? '' : initials(nome)}
     </span>
   )
 }
 
-function CartaoPessoa({
-  pessoa,
-  indice,
-  relacao,
-  souEu,
-  ocupado,
-  onConectar,
-  onDesfazer,
-}: {
-  pessoa: DirectoryPerson
-  indice: number
-  relacao: Connection | null
-  souEu: string | null
-  ocupado: boolean
-  onConectar: () => void
-  onDesfazer: (c: Connection) => void
-}) {
-  const aceita = relacao?.status === 'accepted'
-  const pendente = relacao?.status === 'pending'
-
+function CartaoPessoa({ pessoa, indice }: { pessoa: DirectoryPerson; indice: number }) {
   return (
     <div
       style={{
@@ -454,7 +322,11 @@ function CartaoPessoa({
       }}
     >
       <div style={{ marginBottom: 12 }}>
-        <AvatarRedondo nome={pessoa.full_name ?? '?'} indice={indice} />
+        <AvatarRedondo
+          nome={pessoa.full_name ?? '?'}
+          indice={indice}
+          url={pessoa.avatar_url}
+        />
       </div>
 
       <div
@@ -502,35 +374,35 @@ function CartaoPessoa({
 
       <div style={{ flex: 1 }} />
 
-      {aceita ? (
-        pessoa.linkedin_url ? (
-          <a
-            href={pessoa.linkedin_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ ...botaoContorno, textDecoration: 'none' }}
-          >
-            Abrir LinkedIn
-          </a>
-        ) : (
-          <button
-            onClick={() => relacao && onDesfazer(relacao)}
-            disabled={ocupado}
-            style={{ ...botaoContorno, color: 'var(--tx2)' }}
-          >
-            Conectados
-          </button>
-        )
-      ) : pendente ? (
-        <span style={{ ...botaoContorno, color: 'var(--tx3)', cursor: 'default' }}>
-          {relacao?.requester_id === souEu ? 'Pedido enviado' : 'Quer se conectar'}
-        </span>
+      {pessoa.linkedin_url ? (
+        <a
+          href={pessoa.linkedin_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track('linkedin_clicked', { pessoa_id: pessoa.id })}
+          style={{ ...botaoContorno, textDecoration: 'none' }}
+        >
+          <LinkedInMark />
+          Ver LinkedIn
+        </a>
       ) : (
-        <button onClick={onConectar} disabled={ocupado} style={botaoContorno}>
-          {ocupado ? 'Enviando...' : 'Conectar'}
-        </button>
+        <span style={{ ...botaoContorno, color: 'var(--tx3)', cursor: 'default' }}>
+          Sem LinkedIn
+        </span>
       )}
     </div>
+  )
+}
+
+/** O "in" do LinkedIn, na cor da marca. */
+function LinkedInMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style={{ flex: 'none' }}>
+      <path
+        fill="#0A66C2"
+        d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05a3.74 3.74 0 013.37-1.85c3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 110-4.14 2.07 2.07 0 010 4.14M7.12 20.45H3.55V9h3.57zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.22.79 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.73V1.73C24 .77 23.2 0 22.22 0"
+      />
+    </svg>
   )
 }
 
@@ -547,6 +419,7 @@ const botaoContorno: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: 8,
   boxSizing: 'border-box',
 }
 
