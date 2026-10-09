@@ -485,10 +485,15 @@ mux-player {
   font-size: 50px;
 }
 
+.k-page-title.is-58 {
+  font-size: 58px;
+}
+
 @media (max-width: 1180px) {
   .k-page-title,
   .k-page-title.is-50,
   .k-page-title.is-52,
+  .k-page-title.is-58,
   .k-page-title.is-64 {
     font-size: 46px;
   }
@@ -498,6 +503,7 @@ mux-player {
   .k-page-title,
   .k-page-title.is-50,
   .k-page-title.is-52,
+  .k-page-title.is-58,
   .k-page-title.is-64 {
     font-size: 32px;
   }

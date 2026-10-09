@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useCatalog } from '../hooks/useCatalog'
 import { loadBookmarks, loadLabs, toggleBookmark, type LabView } from '../services/jornada'
 import { supabase } from '../lib/supabase'
-import { NAV_ICON } from '../lib/icons'
+import { NAV_ICON, areaIcon } from '../lib/icons'
 import { eventDay, formatDuration, initials } from '../lib/format'
 import { AREAS, GOALS, LEVELS, type AcademyEvent, type Skill } from '../types/db'
 import type { CatalogCourse } from '../services/catalog'
@@ -14,6 +14,7 @@ import {
   ErrorState,
   Icon,
   Kicker,
+  LockIcon,
   PageLoading,
   ProgressBar,
   SkillChip,
@@ -56,10 +57,10 @@ function Filtro({
           gap: 8,
           background: valor ? 'var(--imperial)' : 'var(--surface)',
           color: valor ? 'var(--bg)' : 'var(--tx)',
-          border: `1px solid ${valor ? 'var(--imperial)' : 'var(--line2)'}`,
-          borderRadius: 'var(--r-control)',
-          padding: '9px 14px',
-          fontSize: 13.5,
+          border: `0.8px solid ${valor ? 'var(--imperial)' : 'var(--line2)'}`,
+          borderRadius: 99,
+          padding: '8px 14px',
+          fontSize: 13,
           cursor: 'pointer',
           whiteSpace: 'nowrap',
         }}
@@ -281,25 +282,37 @@ export default function Explorar() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '48px 48px 100px', maxWidth: 1320 }}>
+    <div className="k-page" style={{ padding: '36px 36px 100px', maxWidth: 1276 }}>
+      <h1 className="k-display k-page-title is-58" style={{ margin: '0 0 12px' }}>
+        Explore a Academy
+      </h1>
+      <p style={{ fontSize: 15, color: 'var(--tx2)', margin: '0 0 26px' }}>
+        Encontre o conteúdo certo para o seu momento e avance com mais confiança.
+      </p>
+
       {/* ---------- busca ---------- */}
-      <div style={{ position: 'relative', marginBottom: 18 }}>
+      <div style={{ position: 'relative', marginBottom: 16 }}>
         <Icon
           d={NAV_ICON.search}
-          size={18}
+          size={17}
           stroke="var(--tx3)"
-          style={{ position: 'absolute', left: 16, top: 15 }}
+          style={{ position: 'absolute', left: 20, top: 16 }}
         />
         <input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Busque por temas, cursos, trilhas ou palavras-chave"
-          style={{ ...inputStyle, padding: '14px 16px 14px 46px', fontSize: 15 }}
+          placeholder="Busque por temas, cursos, trilhas ou palavras-chave..."
+          style={{
+            ...inputStyle,
+            borderRadius: 99,
+            padding: '13px 20px 13px 48px',
+            fontSize: 14,
+          }}
         />
       </div>
 
       {/* ---------- filtros ---------- */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 26 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
         <Filtro
           label="Objetivo"
           valor={fObjetivo}
@@ -331,9 +344,9 @@ export default function Explorar() {
       <div
         style={{
           display: 'flex',
-          gap: 6,
-          borderBottom: '1px solid var(--line)',
-          marginBottom: 36,
+          gap: 2,
+          borderBottom: '0.8px solid var(--line)',
+          marginBottom: 30,
         }}
       >
         {(
@@ -351,9 +364,9 @@ export default function Explorar() {
             style={{
               background: 'transparent',
               border: 'none',
-              borderBottom: `2px solid ${aba === key ? 'var(--imperial)' : 'transparent'}`,
-              color: aba === key ? 'var(--tx)' : 'var(--tx2)',
-              padding: '12px 16px',
+              borderBottom: `2.4px solid ${aba === key ? 'var(--bronze)' : 'transparent'}`,
+              color: aba === key ? 'var(--tx)' : 'var(--tx3)',
+              padding: '10px 18px 12px',
               fontSize: 14,
               fontWeight: aba === key ? 600 : 400,
               cursor: 'pointer',
@@ -411,6 +424,13 @@ export default function Explorar() {
 
 // ---------------------------------------------------------------------
 
+/**
+ * Cartão de conteúdo da lista.
+ *
+ * No desenho ele é horizontal e a arte ocupa a altura inteira da
+ * esquerda — não é uma miniatura com moldura. O selo TRILHA/CURSO fica
+ * sobre a arte, e skills e botão vivem numa terceira coluna, à direita.
+ */
 function CardConteudo({
   curso,
   skills,
@@ -425,14 +445,14 @@ function CardConteudo({
   onSalvar: () => void
 }) {
   const bloqueado = curso.status !== 'coming_soon' && !curso.hasFreeLesson && !isPaid
-  const cta =
-    curso.status === 'coming_soon'
-      ? 'Ver estrutura'
-      : curso.progress > 0
-        ? 'Continuar'
-        : bloqueado
-          ? 'Conhecer'
-          : 'Começar'
+  const emBreve = curso.status === 'coming_soon'
+  const cta = emBreve
+    ? 'Em breve'
+    : curso.progress > 0
+      ? 'Continuar'
+      : bloqueado
+        ? 'Conhecer'
+        : 'Começar'
 
   const nivel =
     curso.level && curso.level_max && curso.level !== curso.level_max
@@ -441,163 +461,225 @@ function CardConteudo({
 
   return (
     <article
-      className="k-card k-hoverable k-stack-mobile"
-      style={{ display: 'flex', gap: 0, overflow: 'hidden', padding: 0 }}
+      className="k-hoverable k-stack-mobile"
+      style={{
+        display: 'flex',
+        background: 'var(--surface)',
+        border: '0.8px solid var(--line)',
+        borderRadius: 14,
+        overflow: 'hidden',
+      }}
     >
-      <div style={{ flex: 'none', width: 196, padding: 14 }} className="k-thumb-mobile">
-        <CourseThumb
-          imageUrl={curso.thumbnail_url}
-          width="100%"
-          height={150}
-          radius={10}
-          badge={curso.kind === 'trilha' ? 'TRILHA' : 'CURSO'}
-          locked={bloqueado}
-        />
+      {/* ---------- arte, altura inteira ---------- */}
+      <div
+        className="k-thumb-mobile"
+        style={{
+          position: 'relative',
+          flex: 'none',
+          width: 220,
+          minHeight: 166,
+          background: curso.thumbnail_url
+            ? `center/cover no-repeat url(${JSON.stringify(curso.thumbnail_url)})`
+            : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {!curso.thumbnail_url && (
+          <Icon
+            d={areaIcon(curso.area)}
+            size={30}
+            stroke="var(--champagne)"
+            width={1.1}
+            style={{ opacity: 0.45 }}
+          />
+        )}
+
+        <span
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: 12,
+            background: 'rgba(241,236,228,.92)',
+            color: 'var(--imperial)',
+            borderRadius: 99,
+            padding: '3px 9px',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+          }}
+        >
+          {curso.kind === 'trilha' ? 'TRILHA' : 'CURSO'}
+        </span>
+
+        {bloqueado && (
+          <span
+            style={{
+              position: 'absolute',
+              right: 12,
+              top: 12,
+              background: 'rgba(241,236,228,.92)',
+              borderRadius: 8,
+              padding: 5,
+              display: 'flex',
+            }}
+          >
+            <LockIcon size={13} color="var(--tx2)" />
+          </span>
+        )}
       </div>
 
-      <div
-        className="k-stack-mobile"
-        style={{ flex: 1, display: 'flex', gap: 20, padding: '20px 22px 20px 8px' }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: 'var(--bronze)',
-              marginBottom: 9,
-            }}
-          >
-            {curso.area}
-            {curso.instructor_name ? ` · ${curso.instructor_name}` : ''}
-          </div>
-
-          <Link to={`/conteudos/${curso.slug}`}>
-            <h3
-              className="k-display"
-              style={{ fontSize: 22, lineHeight: 1.22, marginBottom: 10, color: 'var(--tx)' }}
-            >
-              {curso.title}
-            </h3>
-          </Link>
-
-          {curso.short_description && (
-            <p
-              style={{
-                fontSize: 14,
-                color: 'var(--tx2)',
-                margin: '0 0 14px',
-                lineHeight: 1.5,
-                maxWidth: 480,
-              }}
-            >
-              {curso.short_description}
-            </p>
-          )}
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 18,
-              flexWrap: 'wrap',
-              fontSize: 12.5,
-              color: 'var(--tx2)',
-            }}
-          >
-            {nivel && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon d={NAV_ICON.level} size={13} />
-                {nivel}
-              </span>
-            )}
-            {curso.totalSeconds > 0 && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon d={NAV_ICON.clock} size={13} />
-                {formatDuration(curso.totalSeconds)}
-              </span>
-            )}
-            {curso.moduleCount > 0 && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon d={NAV_ICON.book} size={13} />
-                {curso.moduleCount} {curso.moduleCount === 1 ? 'módulo' : 'módulos'}
-              </span>
-            )}
-          </div>
-
-          {curso.progress > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 280, marginTop: 14 }}>
-              <ProgressBar percent={curso.progress} height={4} />
-              <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{curso.progress}%</span>
-            </div>
-          )}
+      {/* ---------- conteúdo ---------- */}
+      <div style={{ flex: 1, minWidth: 0, padding: '20px 22px' }}>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            color: 'var(--bronze)',
+            marginBottom: 7,
+          }}
+        >
+          {[curso.area, curso.instructor_name].filter(Boolean).join(' · ')}
         </div>
+
+        <Link to={`/conteudos/${curso.slug}`}>
+          <h3
+            className="k-display"
+            style={{ fontSize: 20, lineHeight: 1.25, marginBottom: 8, color: 'var(--tx)' }}
+          >
+            {curso.title}
+          </h3>
+        </Link>
+
+        {curso.short_description && (
+          <p style={{ fontSize: 13, color: 'var(--tx2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+            {curso.short_description}
+          </p>
+        )}
 
         <div
           style={{
-            flex: 'none',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: 14,
-            minWidth: 190,
+            gap: 18,
+            flexWrap: 'wrap',
+            fontSize: 12.5,
+            color: 'var(--tx2)',
           }}
         >
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {curso.status === 'coming_soon' && <Tag kind="soon" />}
-            {skills.slice(0, 3).map((s) => (
-              <SkillChip key={s.id}>{s.name}</SkillChip>
-            ))}
+          {nivel && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon d={NAV_ICON.level} size={13} stroke="var(--tx3)" />
+              {nivel}
+            </span>
+          )}
+          {curso.totalSeconds > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon d={NAV_ICON.clock} size={13} stroke="var(--tx3)" />
+              {formatDuration(curso.totalSeconds)}
+            </span>
+          )}
+          {curso.moduleCount > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon d={NAV_ICON.book} size={13} stroke="var(--tx3)" />
+              {curso.moduleCount} {curso.moduleCount === 1 ? 'módulo' : 'módulos'}
+            </span>
+          )}
+        </div>
+
+        {curso.progress > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              maxWidth: 280,
+              marginTop: 14,
+            }}
+          >
+            <ProgressBar percent={curso.progress} height={4} />
+            <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{curso.progress}%</span>
           </div>
+        )}
+      </div>
 
-          <div style={{ flex: 1 }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Link
-              to={`/conteudos/${curso.slug}`}
+      {/* ---------- skills e ação ---------- */}
+      <div
+        style={{
+          flex: 'none',
+          width: 260,
+          padding: '20px 20px 20px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {skills.slice(0, 3).map((s) => (
+            <span
+              key={s.id}
               style={{
-                background: 'var(--imperial)',
-                color: 'var(--bg)',
-                borderRadius: 'var(--r-control)',
-                padding: '11px 22px',
-                fontSize: 14,
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                whiteSpace: 'nowrap',
+                background: 'var(--bg)',
+                color: 'var(--tx2)',
+                borderRadius: 99,
+                padding: '3px 9px',
+                fontSize: 11,
+                fontWeight: 500,
               }}
             >
-              {cta}
-              <Icon d={NAV_ICON.arrow} size={15} />
-            </Link>
+              {s.name}
+            </span>
+          ))}
+        </div>
 
-            <button
-              onClick={onSalvar}
-              aria-label={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
-              title={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
-              className="k-hoverable"
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 'var(--r-control)',
-                border: '1px solid var(--line2)',
-                background: 'var(--surface)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon
-                d={NAV_ICON.bookmark}
-                size={17}
-                stroke={salvo ? 'var(--imperial)' : 'var(--tx2)'}
-                fill={salvo ? 'var(--imperial)' : 'none'}
-              />
-            </button>
-          </div>
+        <div style={{ flex: 1, minHeight: 12 }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={onSalvar}
+            aria-label={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
+            title={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
+            className="k-hoverable"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 9,
+              border: '0.8px solid var(--line2)',
+              background: 'var(--surface)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon
+              d={NAV_ICON.bookmark}
+              size={16}
+              stroke={salvo ? 'var(--terracotta)' : 'var(--tx2)'}
+            />
+          </button>
+
+          <Link
+            to={`/conteudos/${curso.slug}`}
+            style={{
+              background: emBreve ? 'transparent' : 'var(--imperial)',
+              border: emBreve ? '0.8px solid var(--line2)' : 'none',
+              color: emBreve ? 'var(--tx2)' : 'var(--bg)',
+              borderRadius: 9,
+              padding: '10px 22px',
+              fontSize: 13,
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {cta}
+            {!emBreve && <Icon d={NAV_ICON.arrow} size={14} />}
+          </Link>
         </div>
       </div>
     </article>
