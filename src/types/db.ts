@@ -71,6 +71,8 @@ export type Course = {
   level_max: ContentLevel | null
   has_certificate: boolean
   outcomes: string[]
+  /** "Para quem é esta trilha" */
+  audience: string | null
   hero_image_url: string | null
   created_at: string
   updated_at: string
