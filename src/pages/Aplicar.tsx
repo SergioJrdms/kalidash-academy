@@ -9,6 +9,7 @@ import {
   type SkillProgress,
 } from '../services/jornada'
 import { track } from '../lib/analytics'
+import { Imagem } from '../components/Imagem'
 import { NAV_ICON } from '../lib/icons'
 import { ErrorState, Icon, Kicker, Modal, PageLoading, Spinner } from '../components/ui'
 
@@ -95,7 +96,7 @@ export default function Aplicar() {
     if (userId) void loadSkills(userId).then(setSkills)
   }
 
-  if (loading) return <PageLoading />
+  if (loading) return <PageLoading titulo="18%" blocos={[520, 150]} />
   if (erro) {
     return (
       <div className="k-page" style={{ padding: 48 }}>
@@ -105,7 +106,7 @@ export default function Aplicar() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
+    <div className="k-page k-enter" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
       <h1 className="k-display k-page-title" style={{ margin: '0 0 10px' }}>
         Aplicar
       </h1>
@@ -158,13 +159,7 @@ export default function Aplicar() {
             <div style={{ padding: '20px 20px 24px' }}>
               <Kicker style={{ letterSpacing: '1px', marginBottom: 14 }}>Lab em destaque</Kicker>
               <div className="k-stack-mobile" style={{ display: 'flex', gap: 20 }}>
-                <Arte
-                  url={destaque.image_url}
-                  largura={300}
-                  altura={176}
-                  raio={12}
-                  icone={32}
-                />
+                <Arte url={destaque.image_url} largura={300} altura={176} raio={12} icone={32} />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h2
@@ -196,9 +191,7 @@ export default function Aplicar() {
                     }}
                   >
                     {destaque.level && <Meta icone={NAV_ICON.level}>{destaque.level}</Meta>}
-                    {destaque.minutes && (
-                      <Meta icone={NAV_ICON.clock}>{destaque.minutes} min</Meta>
-                    )}
+                    {destaque.minutes && <Meta icone={NAV_ICON.clock}>{destaque.minutes} min</Meta>}
                     {destaque.skills.map((s) => (
                       <Pilula key={s.id}>{s.name}</Pilula>
                     ))}
@@ -268,6 +261,7 @@ export default function Aplicar() {
                 <LinhaLab
                   key={lab.id}
                   lab={lab}
+                  indice={i}
                   primeira={i === 0}
                   onAbrir={() => setAberto(lab)}
                 />
@@ -389,31 +383,14 @@ function Arte({
   icone: number
 }) {
   return (
-    <div
-      style={{
-        flex: 'none',
-        width: largura ?? '100%',
-        height: altura,
-        borderRadius: raio,
-        overflow: 'hidden',
-        background: url
-          ? `center/cover no-repeat url(${JSON.stringify(url)})`
-          : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {!url && (
-        <Icon
-          d={NAV_ICON.spark}
-          size={icone}
-          stroke="var(--champagne)"
-          width={1.1}
-          style={{ opacity: 0.45 }}
-        />
-      )}
-    </div>
+    <Imagem
+      src={url}
+      largura={largura}
+      altura={altura}
+      raio={raio}
+      icone={NAV_ICON.spark}
+      tamanhoIcone={icone}
+    />
   )
 }
 
@@ -509,10 +486,12 @@ function CabecaLateral({ titulo, para }: { titulo: string; para: string }) {
 function LinhaLab({
   lab,
   primeira,
+  indice,
   onAbrir,
 }: {
   lab: LabView
   primeira: boolean
+  indice: number
   onAbrir: () => void
 }) {
   const concluido = Boolean(lab.submission?.completed_at)
@@ -521,8 +500,9 @@ function LinhaLab({
   return (
     <button
       onClick={onAbrir}
-      className="k-row"
+      className="k-row k-enter-i k-press"
       style={{
+        ['--i' as string]: indice,
         width: '100%',
         display: 'flex',
         alignItems: 'center',
@@ -873,8 +853,8 @@ function UltimaAplicacaoCard({
       <CartaoLateral>
         <CabecaLateral titulo="Última aplicação" para="/perfil" />
         <p style={{ fontSize: 12.5, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 16px' }}>
-          Você ainda não aplicou nenhum Lab. Quando aplicar, o registro fica aqui — com o que
-          você escreveu e a data.
+          Você ainda não aplicou nenhum Lab. Quando aplicar, o registro fica aqui — com o que você
+          escreveu e a data.
         </p>
         <button onClick={onComecar} style={botaoClaro}>
           Começar um Lab

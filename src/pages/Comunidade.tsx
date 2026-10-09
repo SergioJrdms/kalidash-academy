@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { initials } from '../lib/format'
+import { FotoSobreposta } from '../components/Imagem'
 import { NAV_ICON } from '../lib/icons'
 import { track } from '../lib/analytics'
 import {
@@ -48,21 +49,12 @@ export default function Comunidade() {
 
   /** Quem dá para alcançar: todo mundo do diretório que não é você. */
   const disponiveis = sugestoes.length
-  const comLinkedin = useMemo(
-    () => pessoas.filter((p) => p.linkedin_url).length,
-    [pessoas],
-  )
+  const comLinkedin = useMemo(() => pessoas.filter((p) => p.linkedin_url).length, [pessoas])
 
-
-
-
-
-
-
-  if (loading) return <PageLoading />
+  if (loading) return <PageLoading titulo="26%" blocos={[96, 300, 240]} />
 
   return (
-    <div className="k-page" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
+    <div className="k-page k-enter" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
       {/* ---------------- cabeçalho ---------------- */}
       <div
         style={{
@@ -82,8 +74,7 @@ export default function Comunidade() {
             Comunidade
           </h1>
           <p style={{ color: 'var(--tx2)', fontSize: 15, margin: 0, maxWidth: 620 }}>
-            Conecte-se com profissionais, compartilhe experiências e encontre novas
-            oportunidades.
+            Conecte-se com profissionais, compartilhe experiências e encontre novas oportunidades.
           </p>
         </div>
 
@@ -198,15 +189,7 @@ export default function Comunidade() {
 
 // ---------------------------------------------------------------------
 
-function CabecaSecao({
-  kicker,
-  titulo,
-  link,
-}: {
-  kicker: string
-  titulo: string
-  link?: string
-}) {
+function CabecaSecao({ kicker, titulo, link }: { kicker: string; titulo: string; link?: string }) {
   return (
     <>
       <Kicker style={{ fontSize: 11, letterSpacing: '1px', marginBottom: 10 }}>{kicker}</Kicker>
@@ -260,18 +243,19 @@ function AvatarRedondo({
         width: tamanho,
         height: tamanho,
         borderRadius: '50%',
-        background: url
-          ? `center/cover no-repeat url(${JSON.stringify(url)})`
-          : CORES_AVATAR[indice % CORES_AVATAR.length],
+        background: CORES_AVATAR[indice % CORES_AVATAR.length],
         color: 'var(--bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: tamanho < 36 ? 11 : 12,
         fontWeight: 600,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      {url ? '' : initials(nome)}
+      {initials(nome)}
+      <FotoSobreposta src={url} alt={nome} />
     </span>
   )
 }
@@ -279,7 +263,9 @@ function AvatarRedondo({
 function CartaoPessoa({ pessoa, indice }: { pessoa: DirectoryPerson; indice: number }) {
   return (
     <div
+      className="k-enter-i"
       style={{
+        ['--i' as string]: indice,
         background: 'var(--surface2)',
         border: '0.8px solid var(--line)',
         borderRadius: 12,
@@ -289,11 +275,7 @@ function CartaoPessoa({ pessoa, indice }: { pessoa: DirectoryPerson; indice: num
       }}
     >
       <div style={{ marginBottom: 12 }}>
-        <AvatarRedondo
-          nome={pessoa.full_name ?? '?'}
-          indice={indice}
-          url={pessoa.avatar_url}
-        />
+        <AvatarRedondo nome={pessoa.full_name ?? '?'} indice={indice} url={pessoa.avatar_url} />
       </div>
 
       <div
@@ -401,11 +383,7 @@ const botaoContorno: React.CSSProperties = {
 function CartaoWhatsApp() {
   return (
     <section
-      style={{
-        background: 'var(--imperial)',
-        borderRadius: 'var(--r-card)',
-        padding: '28px 32px',
-      }}
+      style={{ background: 'var(--imperial)', borderRadius: 'var(--r-card)', padding: '28px 32px' }}
     >
       <div className="k-whats-faixa">
         {/* ---- marca e título ---- */}
@@ -454,8 +432,8 @@ function CartaoWhatsApp() {
               maxWidth: 420,
             }}
           >
-            Troque experiências, compartilhe oportunidades e tire dúvidas com quem também
-            está aplicando IA.
+            Troque experiências, compartilhe oportunidades e tire dúvidas com quem também está
+            aplicando IA.
           </p>
         </div>
 
@@ -591,9 +569,8 @@ function PerfilNaComunidade({
           Você ainda não está aqui
         </h2>
         <p style={{ fontSize: 13.5, color: 'var(--tx2)', lineHeight: 1.65, margin: '0 0 20px' }}>
-          O networking é opcional. Ao entrar, as outras pessoas da Academy veem seu nome,
-          cargo, empresa e um interesse — nunca o seu e-mail. Seu LinkedIn aparece no botão
-          do seu cartão.
+          O networking é opcional. Ao entrar, as outras pessoas da Academy veem seu nome, cargo,
+          empresa e um interesse — nunca o seu e-mail. Seu LinkedIn aparece no botão do seu cartão.
         </p>
         <button
           onClick={() => void entrar()}
@@ -715,4 +692,3 @@ function PerfilNaComunidade({
     </section>
   )
 }
-

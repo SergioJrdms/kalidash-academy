@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 // ---------------------------------------------------------------------
@@ -65,6 +66,7 @@ export function PrimaryButton({
   type = 'button',
   style,
   full,
+  carregando,
 }: {
   children: ReactNode
   onClick?: () => void
@@ -72,12 +74,20 @@ export function PrimaryButton({
   type?: 'button' | 'submit'
   style?: CSSProperties
   full?: boolean
+  /**
+   * Enquanto a ação está no ar. O rótulo fica onde está — trocá-lo por
+   * "Enviando…" muda a largura do botão e sacode a tela. O que entra é
+   * o giro, à esquerda, e o clique para de valer.
+   */
+  carregando?: boolean
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || carregando}
+      aria-busy={carregando || undefined}
+      className="k-press"
       style={{
         background: 'var(--imperial)',
         border: 'none',
@@ -92,10 +102,12 @@ export function PrimaryButton({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 9,
-        transition: 'opacity .18s',
+        opacity: disabled || carregando ? 0.6 : 1,
+        transition: 'opacity var(--mo-base) var(--mo-out)',
         ...style,
       }}
     >
+      {carregando && <Spinner size={14} />}
       {children}
     </button>
   )
@@ -121,7 +133,7 @@ export function GhostButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="k-hoverable"
+      className="k-hoverable k-press"
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--line2)',
@@ -245,13 +257,7 @@ export function SkillChip({ children }: { children: ReactNode }) {
   )
 }
 
-export function Kicker({
-  children,
-  style,
-}: {
-  children: ReactNode
-  style?: CSSProperties
-}) {
+export function Kicker({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div className="k-kicker" style={style}>
       {children}
@@ -311,6 +317,9 @@ export function CourseThumb({
   locked?: boolean
   className?: string
 }) {
+  const [pronta, setPronta] = useState(false)
+  const [falhou, setFalhou] = useState(false)
+
   return (
     <div
       className={className}
@@ -319,9 +328,7 @@ export function CourseThumb({
         width: width ?? '100%',
         height,
         borderRadius: radius,
-        background: imageUrl
-          ? `center/cover no-repeat url(${JSON.stringify(imageUrl)})`
-          : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
+        background: 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
@@ -329,15 +336,33 @@ export function CourseThumb({
         justifyContent: 'center',
       }}
     >
-      {/* Sem foto, o espaço não fica cinza: recebe a marca d'água da área,
-          em champanhe sobre o roxo da marca. */}
-      {!imageUrl && (
-        <Icon
-          d={iconPath ?? 'M12 3l1.8 5 5 1.8-5 1.8L12 16.6l-1.8-5-5-1.8 5-1.8z'}
-          size={Math.min(54, typeof height === 'number' ? height * 0.42 : 42)}
-          stroke="var(--champagne)"
-          width={1.1}
-          style={{ opacity: 0.45 }}
+      {/* A marca d'água da área fica sempre atrás: é ela que se vê
+          enquanto a foto não chegou, e é ela que fica se não houver foto
+          nenhuma — champanhe sobre o roxo da marca, nunca um vazio. */}
+      <Icon
+        d={iconPath ?? 'M12 3l1.8 5 5 1.8-5 1.8L12 16.6l-1.8-5-5-1.8 5-1.8z'}
+        size={Math.min(54, typeof height === 'number' ? height * 0.42 : 42)}
+        stroke="var(--champagne)"
+        width={1.1}
+        style={{ opacity: 0.45 }}
+      />
+
+      {imageUrl && !falhou && (
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setPronta(true)}
+          onError={() => setFalhou(true)}
+          className={`k-img${pronta ? ' is-pronta' : ''}`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
         />
       )}
       {badge && (
@@ -382,32 +407,59 @@ export function ProgressBar({
   height = 5,
   maxWidth,
   color = 'var(--bronze)',
+  indeterminada,
 }: {
   percent: number
   height?: number
   maxWidth?: number | string
   color?: string
+  /** Quando não se sabe quanto falta, a barra corre em vez de mentir. */
+  indeterminada?: boolean
 }) {
+  const valor = Math.max(0, Math.min(100, percent))
+
   return (
     <div
+      role="progressbar"
+      aria-valuenow={indeterminada ? undefined : Math.round(valor)}
+      aria-valuemin={0}
+      aria-valuemax={100}
       style={{
+        position: 'relative',
         flex: 1,
         maxWidth,
         height,
+        // `flex: 1` encolhe o lado do eixo principal. Numa coluna, esse
+        // lado e a altura, e a barra sumia — cheia, com a cor certa e 0px
+        // de altura. O minimo garante que ela so cresca na largura.
+        minHeight: height,
         borderRadius: 999,
         background: 'var(--line)',
         overflow: 'hidden',
       }}
     >
-      <div
-        style={{
-          height: '100%',
-          borderRadius: 999,
-          background: color,
-          width: `${Math.max(0, Math.min(100, percent))}%`,
-          transition: 'width .3s ease',
-        }}
-      />
+      {indeterminada ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 999,
+            background: color,
+            animation: 'correr 1.1s var(--mo-in-out) infinite',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            height: '100%',
+            borderRadius: 999,
+            background: color,
+            width: `${valor}%`,
+            // a barra cresce junto com o número, em vez de saltar
+            transition: 'width var(--mo-slow) var(--mo-out)',
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -419,25 +471,77 @@ export function Skeleton({
   height,
   width = '100%',
   radius = 16,
+  circulo,
   style,
 }: {
   height: number | string
   width?: number | string
   radius?: number
+  circulo?: boolean
   style?: CSSProperties
 }) {
-  return <div className="k-skel" style={{ height, width, borderRadius: radius, ...style }} />
+  return (
+    <div
+      className="k-skel"
+      aria-hidden="true"
+      style={{
+        height,
+        width: circulo ? height : width,
+        borderRadius: circulo ? '50%' : radius,
+        ...style,
+      }}
+    />
+  )
 }
 
-export function PageLoading() {
+/**
+ * Esqueleto de uma linha de cartão da lista: arte à esquerda, texto à
+ * direita. Serve para Explorar, Aplicar e qualquer lista horizontal.
+ */
+export function SkeletonLinha({ altura = 150 }: { altura?: number }) {
   return (
-    <div style={{ padding: '56px 56px 100px', maxWidth: 1180 }} className="k-page">
-      <Skeleton height={52} width="55%" style={{ marginBottom: 16 }} />
-      <Skeleton height={20} width="40%" style={{ marginBottom: 48 }} />
-      <Skeleton height={180} style={{ marginBottom: 20 }} />
-      <Skeleton height={130} style={{ marginBottom: 14 }} />
-      <Skeleton height={130} />
+    <div
+      className="k-card"
+      style={{ display: 'flex', gap: 20, padding: 0, overflow: 'hidden', height: altura }}
+    >
+      <Skeleton height={altura} width={200} radius={0} />
+      <div style={{ flex: 1, padding: '22px 22px 22px 0' }}>
+        <Skeleton height={11} width="22%" style={{ marginBottom: 14 }} />
+        <Skeleton height={20} width="55%" style={{ marginBottom: 12 }} />
+        <Skeleton height={12} width="85%" style={{ marginBottom: 8 }} />
+        <Skeleton height={12} width="60%" />
+      </div>
     </div>
+  )
+}
+
+/**
+ * Espera de tela inteira.
+ *
+ * Em vez de um spinner no vazio, o esqueleto já desenha a forma do que
+ * vai chegar: título, subtítulo e blocos. A pessoa entende o que está
+ * sendo carregado antes de ver o conteúdo. O fio no topo diz que algo
+ * está acontecendo mesmo quando a rolagem está longe dos blocos.
+ */
+export function PageLoading({
+  titulo = '46%',
+  blocos = [180, 130, 130],
+}: {
+  titulo?: string
+  blocos?: number[]
+}) {
+  return (
+    <>
+      <div className="k-rota" aria-hidden="true" />
+      <div style={{ padding: '40px 36px 100px', maxWidth: 1280 }} className="k-page k-surge">
+        <Skeleton height={46} width={titulo} style={{ marginBottom: 16 }} />
+        <Skeleton height={18} width="34%" style={{ marginBottom: 40 }} />
+        {blocos.map((h, i) => (
+          <Skeleton key={i} height={h} style={{ marginBottom: 20 }} />
+        ))}
+        <span className="k-sr">Carregando</span>
+      </div>
+    </>
   )
 }
 
@@ -451,10 +555,7 @@ export function ErrorState({
   onRetry?: () => void
 }) {
   return (
-    <div
-      className="k-card"
-      style={{ padding: 32, textAlign: 'center', maxWidth: 520 }}
-    >
+    <div className="k-card" style={{ padding: 32, textAlign: 'center', maxWidth: 520 }}>
       <div className="k-display k-h3" style={{ marginBottom: 10 }}>
         {title}
       </div>
@@ -488,6 +589,8 @@ export function Spinner({ size = 15, color = 'currentColor' }: { size?: number; 
   return (
     <span
       className="k-spin"
+      role="status"
+      aria-label="Carregando"
       style={{
         display: 'inline-block',
         width: size,
@@ -575,14 +678,7 @@ export function Field({
 }) {
   return (
     <label style={{ display: 'block', ...style }}>
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'var(--tx)',
-          marginBottom: 7,
-        }}
-      >
+      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--tx)', marginBottom: 7 }}>
         {label}
       </div>
       {children}
@@ -591,13 +687,7 @@ export function Field({
   )
 }
 
-export function Banner({
-  kind,
-  children,
-}: {
-  kind: 'error' | 'ok' | 'info'
-  children: ReactNode
-}) {
+export function Banner({ kind, children }: { kind: 'error' | 'ok' | 'info'; children: ReactNode }) {
   const map = {
     error: { bg: 'var(--dangersoft)', fg: 'var(--danger)', bd: '#e8cdc9' },
     ok: { bg: 'var(--oksoft)', fg: 'var(--ok)', bd: '#c9e0d4' },

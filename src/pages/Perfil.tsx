@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCatalog } from '../hooks/useCatalog'
 import { initials } from '../lib/format'
+import { FotoSobreposta, Imagem } from '../components/Imagem'
 import { NAV_ICON } from '../lib/icons'
 import {
   issueCertificate,
@@ -82,10 +83,7 @@ export default function Perfil() {
     }
   }, [courses, certs, loading, extra, userId])
 
-  const cases = useMemo(
-    () => labs.filter((l) => l.is_case && l.submission?.completed_at),
-    [labs],
-  )
+  const cases = useMemo(() => labs.filter((l) => l.is_case && l.submission?.completed_at), [labs])
   const labsFeitos = useMemo(
     () => labs.filter((l) => !l.is_case && l.submission?.completed_at),
     [labs],
@@ -175,12 +173,12 @@ export default function Perfil() {
     }
   }
 
-  if (loading || extra) return <PageLoading />
+  if (loading || extra) return <PageLoading titulo="30%" blocos={[232, 96, 330, 150]} />
 
   const linhaTrilha = [journey?.title, profile?.level].filter(Boolean).join(' · ')
 
   return (
-    <div className="k-page" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
+    <div className="k-page k-enter" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
       {aviso && (
         <div style={{ marginBottom: 18 }}>
           <Banner kind="ok">{aviso}</Banner>
@@ -207,9 +205,7 @@ export default function Perfil() {
             </h1>
 
             {linhaTrilha && (
-              <div style={{ fontSize: 16, color: 'var(--tx)', marginBottom: 8 }}>
-                {linhaTrilha}
-              </div>
+              <div style={{ fontSize: 16, color: 'var(--tx)', marginBottom: 8 }}>{linhaTrilha}</div>
             )}
 
             <p style={{ fontSize: 14, color: 'var(--tx2)', margin: '0 0 20px' }}>
@@ -332,7 +328,7 @@ export default function Perfil() {
           ) : (
             <div>
               {certs.map((c, i) => (
-                <LinhaCertificado key={c.id} cert={c} primeira={i === 0} />
+                <LinhaCertificado key={c.id} cert={c} indice={i} primeira={i === 0} />
               ))}
             </div>
           )}
@@ -351,8 +347,8 @@ export default function Perfil() {
             </Vazio>
           ) : (
             <div className="k-cases-grid">
-              {cases.map((l) => (
-                <CelulaCase key={l.id} lab={l} onAbrir={() => setCaseAberto(l)} />
+              {cases.map((l, i) => (
+                <CelulaCase key={l.id} lab={l} indice={i} onAbrir={() => setCaseAberto(l)} />
               ))}
             </div>
           )}
@@ -385,7 +381,9 @@ export default function Perfil() {
               {atividade.map((a, i) => (
                 <div
                   key={i}
+                  className="k-enter-i"
                   style={{
+                    ['--i' as string]: i,
                     position: 'relative',
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -413,12 +411,7 @@ export default function Perfil() {
                       <strong style={{ fontWeight: 600 }}>{a.destaque}</strong>
                     </span>
                     <span
-                      style={{
-                        display: 'block',
-                        fontSize: 11,
-                        color: 'var(--tx3)',
-                        marginTop: 4,
-                      }}
+                      style={{ display: 'block', fontSize: 11, color: 'var(--tx3)', marginTop: 4 }}
                     >
                       {tempoRelativo(a.quando)}
                     </span>
@@ -550,7 +543,7 @@ function AvatarEditavel({
           height: 112,
           borderRadius: '50%',
           border: '2.4px solid var(--line)',
-          background: url ? `center/cover no-repeat url(${JSON.stringify(url)})` : 'transparent',
+          background: 'transparent',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -563,7 +556,8 @@ function AvatarEditavel({
           padding: 0,
         }}
       >
-        {!url && !enviando && initials(nome)}
+        {!enviando && initials(nome)}
+        <FotoSobreposta src={url} alt={nome} />
 
         {(sobre || enviando) && (
           <span
@@ -687,10 +681,20 @@ function Barra({ percent }: { percent: number }) {
   )
 }
 
-function LinhaCertificado({ cert, primeira }: { cert: CertificateView; primeira: boolean }) {
+function LinhaCertificado({
+  cert,
+  primeira,
+  indice,
+}: {
+  cert: CertificateView
+  primeira: boolean
+  indice: number
+}) {
   return (
     <div
+      className="k-enter-i"
       style={{
+        ['--i' as string]: indice,
         display: 'flex',
         alignItems: 'center',
         gap: 14,
@@ -773,11 +777,21 @@ function LinhaCertificado({ cert, primeira }: { cert: CertificateView; primeira:
   )
 }
 
-function CelulaCase({ lab, onAbrir }: { lab: LabView; onAbrir: () => void }) {
+function CelulaCase({
+  lab,
+  indice,
+  onAbrir,
+}: {
+  lab: LabView
+  indice: number
+  onAbrir: () => void
+}) {
   return (
     <button
       onClick={onAbrir}
+      className="k-enter-i k-press k-hoverable"
       style={{
+        ['--i' as string]: indice,
         background: 'var(--surface2)',
         border: '0.8px solid var(--line)',
         borderRadius: 12,
@@ -789,27 +803,14 @@ function CelulaCase({ lab, onAbrir }: { lab: LabView; onAbrir: () => void }) {
         flexDirection: 'column',
       }}
     >
-      <span
-        style={{
-          display: 'flex',
-          height: 110,
-          background: lab.image_url
-            ? `center/cover no-repeat url(${JSON.stringify(lab.image_url)})`
-            : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {!lab.image_url && (
-          <Icon
-            d={NAV_ICON.note}
-            size={26}
-            stroke="var(--champagne)"
-            width={1.1}
-            style={{ opacity: 0.45 }}
-          />
-        )}
-      </span>
+      <Imagem
+        src={lab.image_url}
+        alt=""
+        altura={110}
+        raio={0}
+        icone={NAV_ICON.note}
+        tamanhoIcone={26}
+      />
 
       <span style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <span

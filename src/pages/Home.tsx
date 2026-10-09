@@ -140,7 +140,7 @@ export default function Home() {
     [courses, profile?.area, cont],
   )
 
-  if (loading || extraLoading) return <PageLoading />
+  if (loading || extraLoading) return <PageLoading titulo="38%" blocos={[240, 200, 260]} />
 
   if (error) {
     return (
@@ -153,10 +153,8 @@ export default function Home() {
   const nome = firstName(profile?.full_name)
 
   return (
-    <div className="k-page" style={{ padding: '44px 48px 100px', maxWidth: 1320 }}>
-      <Kicker style={{ marginBottom: 14 }}>
-        {cont ? 'Bem-vinda de volta' : 'Comece aqui'}
-      </Kicker>
+    <div className="k-page k-enter" style={{ padding: '44px 48px 100px', maxWidth: 1320 }}>
+      <Kicker style={{ marginBottom: 14 }}>{cont ? 'Bem-vinda de volta' : 'Comece aqui'}</Kicker>
       <h1 className="k-display k-page-title is-52" style={{ margin: '0 0 14px' }}>
         {cont ? `${greeting()}, ${nome || 'tudo bem'}.` : 'Bem-vinda ao Kalidash Academy.'}
       </h1>
@@ -204,13 +202,7 @@ export default function Home() {
 
 // ---------------------------------------------------------------------
 
-function Card({
-  children,
-  style,
-}: {
-  children: React.ReactNode
-  style?: React.CSSProperties
-}) {
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <section className="k-card" style={{ padding: 26, ...style }}>
       {children}
@@ -219,15 +211,7 @@ function Card({
 }
 
 /** Cabeçalho de cartão: kicker à esquerda, link discreto à direita. */
-function CardHead({
-  titulo,
-  to,
-  linkLabel,
-}: {
-  titulo: string
-  to?: string
-  linkLabel?: string
-}) {
+function CardHead({ titulo, to, linkLabel }: { titulo: string; to?: string; linkLabel?: string }) {
   return (
     <div
       style={{
@@ -259,13 +243,7 @@ function CardHead({
   )
 }
 
-function ContinueCardView({
-  cont,
-  emFoco,
-}: {
-  cont: ContinueCard
-  emFoco: SkillProgress | null
-}) {
+function ContinueCardView({ cont, emFoco }: { cont: ContinueCard; emFoco: SkillProgress | null }) {
   const restante = Math.max(
     0,
     Math.round(((cont.lesson.duration_seconds ?? 0) - cont.watchedSeconds) / 60),
@@ -508,7 +486,9 @@ function MonogramaK() {
 
 function ProximoPassoCard({ lab }: { lab: LabView | null }) {
   return (
-    <Card style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+    <Card
+      style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
+    >
       {/*
         A lavagem pastel no canto faz parte do desenho do cartão, não do
         conteúdo: nenhum Lab tem imagem cadastrada e, mesmo quando tiver,
@@ -623,7 +603,9 @@ function JornadaCard({ journey }: { journey: JourneyView }) {
           return (
             <div
               key={s.id}
+              className="k-enter-i"
               style={{
+                ['--i' as string]: i,
                 display: 'flex',
                 alignItems: 'flex-start',
                 // so os trechos com traco esticam; o ultimo fecha no rotulo
@@ -742,12 +724,17 @@ function AulasCurtasCard({
             gap: 24,
           }}
         >
-          {itens.map(({ lesson, course }) => (
+          {itens.map(({ lesson, course }, i) => (
             <Link
               key={lesson.id}
               to={`/aula/${lesson.id}`}
-              className="k-lift"
-              style={{ display: 'flex', flexDirection: 'column', color: 'var(--tx)' }}
+              className="k-lift k-enter-i"
+              style={{
+                ['--i' as string]: i,
+                display: 'flex',
+                flexDirection: 'column',
+                color: 'var(--tx)',
+              }}
             >
               <CourseThumb
                 imageUrl={lesson.thumbnail_url ?? course.thumbnail_url}
@@ -826,12 +813,13 @@ function AulasCurtasCard({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {recomendados.map((c) => (
+          {recomendados.map((c, i) => (
             <Link
               key={c.id}
               to={`/conteudos/${c.slug}`}
-              className="k-row"
+              className="k-row k-enter-i"
               style={{
+                ['--i' as string]: i,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 14,

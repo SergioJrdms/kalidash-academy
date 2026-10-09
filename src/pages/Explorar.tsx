@@ -22,6 +22,7 @@ import {
   inputStyle,
 } from '../components/ui'
 import { track } from '../lib/analytics'
+import { Imagem } from '../components/Imagem'
 
 type Aba = 'todos' | 'trilhas' | 'aulas' | 'eventos' | 'labs'
 
@@ -66,11 +67,7 @@ function Filtro({
         }}
       >
         {valor ?? label}
-        <Icon
-          d="M6 9l6 6 6-6"
-          size={14}
-          stroke={valor ? 'var(--bg)' : 'var(--tx2)'}
-        />
+        <Icon d="M6 9l6 6 6-6" size={14} stroke={valor ? 'var(--bg)' : 'var(--tx2)'} />
       </button>
 
       {open && (
@@ -253,10 +250,7 @@ export default function Explorar() {
   }, [labs, busca, fNivel])
 
   const contagens = useMemo(
-    () => ({
-      trilhas: courses.filter((c) => c.kind === 'trilha').length,
-      eventos: eventos.length,
-    }),
+    () => ({ trilhas: courses.filter((c) => c.kind === 'trilha').length, eventos: eventos.length }),
     [courses, eventos],
   )
 
@@ -282,7 +276,7 @@ export default function Explorar() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '36px 36px 100px', maxWidth: 1276 }}>
+    <div className="k-page k-enter" style={{ padding: '36px 36px 100px', maxWidth: 1276 }}>
       <h1 className="k-display k-page-title is-58" style={{ margin: '0 0 12px' }}>
         Explore a Academy
       </h1>
@@ -302,12 +296,7 @@ export default function Explorar() {
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Busque por temas, cursos, trilhas ou palavras-chave..."
-          style={{
-            ...inputStyle,
-            borderRadius: 99,
-            padding: '13px 20px 13px 48px',
-            fontSize: 14,
-          }}
+          style={{ ...inputStyle, borderRadius: 99, padding: '13px 20px 13px 48px', fontSize: 14 }}
         />
       </div>
 
@@ -319,7 +308,12 @@ export default function Explorar() {
           opcoes={GOALS.map((g) => g.value)}
           onPick={(v) => setParam('objetivo', v)}
         />
-        <Filtro label="Área" valor={fArea} opcoes={[...AREAS]} onPick={(v) => setParam('area', v)} />
+        <Filtro
+          label="Área"
+          valor={fArea}
+          opcoes={[...AREAS]}
+          onPick={(v) => setParam('area', v)}
+        />
         <Filtro
           label="Nível"
           valor={fNivel}
@@ -404,9 +398,10 @@ export default function Explorar() {
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {filtrados.map((c) => (
+              {filtrados.map((c, i) => (
                 <CardConteudo
                   key={c.id}
+                  indice={i}
                   curso={c}
                   skills={skillsByCourse.get(c.id) ?? []}
                   isPaid={isPaid}
@@ -436,12 +431,14 @@ function CardConteudo({
   skills,
   isPaid,
   salvo,
+  indice = 0,
   onSalvar,
 }: {
   curso: CatalogCourse
   skills: Skill[]
   isPaid: boolean
   salvo: boolean
+  indice?: number
   onSalvar: () => void
 }) {
   const bloqueado = curso.status !== 'coming_soon' && !curso.hasFreeLesson && !isPaid
@@ -461,8 +458,9 @@ function CardConteudo({
 
   return (
     <article
-      className="k-hoverable k-stack-mobile"
+      className="k-hoverable k-stack-mobile k-enter-i"
       style={{
+        ['--i' as string]: indice,
         display: 'flex',
         background: 'var(--surface)',
         border: '0.8px solid var(--line)',
@@ -471,31 +469,16 @@ function CardConteudo({
       }}
     >
       {/* ---------- arte, altura inteira ---------- */}
-      <div
-        className="k-thumb-mobile"
-        style={{
-          position: 'relative',
-          flex: 'none',
-          width: 220,
-          minHeight: 166,
-          background: curso.thumbnail_url
-            ? `center/cover no-repeat url(${JSON.stringify(curso.thumbnail_url)})`
-            : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+      <Imagem
+        src={curso.thumbnail_url}
+        alt=""
+        largura={220}
+        altura="100%"
+        raio={0}
+        icone={areaIcon(curso.area)}
+        tamanhoIcone={30}
+        style={{ minHeight: 166 }}
       >
-        {!curso.thumbnail_url && (
-          <Icon
-            d={areaIcon(curso.area)}
-            size={30}
-            stroke="var(--champagne)"
-            width={1.1}
-            style={{ opacity: 0.45 }}
-          />
-        )}
-
         <span
           style={{
             position: 'absolute',
@@ -528,7 +511,7 @@ function CardConteudo({
             <LockIcon size={13} color="var(--tx2)" />
           </span>
         )}
-      </div>
+      </Imagem>
 
       {/* ---------- conteúdo ---------- */}
       <div style={{ flex: 1, minWidth: 0, padding: '20px 22px' }}>
@@ -591,13 +574,7 @@ function CardConteudo({
 
         {curso.progress > 0 && (
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              maxWidth: 280,
-              marginTop: 14,
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 280, marginTop: 14 }}
           >
             <ProgressBar percent={curso.progress} height={4} />
             <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{curso.progress}%</span>
@@ -641,7 +618,7 @@ function CardConteudo({
             onClick={onSalvar}
             aria-label={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
             title={salvo ? 'Remover dos salvos' : 'Salvar para depois'}
-            className="k-hoverable"
+            className="k-hoverable k-press"
             style={{
               width: 40,
               height: 40,
@@ -688,7 +665,9 @@ function CardConteudo({
 
 function ListaEventos({ eventos, isPaid }: { eventos: AcademyEvent[]; isPaid: boolean }) {
   if (eventos.length === 0) {
-    return <EmptyState title="Nenhum evento" message="Assim que houver data marcada, aparece aqui." />
+    return (
+      <EmptyState title="Nenhum evento" message="Assim que houver data marcada, aparece aqui." />
+    )
   }
 
   return (
@@ -776,7 +755,13 @@ function ListaAulas({
               key={aula.id}
               to={bloqueada ? `/conteudos/${curso.slug}` : `/aula/${aula.id}`}
               className="k-card k-hoverable"
-              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, color: 'var(--tx)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                padding: 16,
+                color: 'var(--tx)',
+              }}
             >
               <span
                 style={{
@@ -877,13 +862,25 @@ function ListaLabs({ labs }: { labs: LabView[] }) {
             key={l.id}
             to="/aplicar"
             className="k-card k-hoverable"
-            style={{ display: 'flex', gap: 16, padding: 16, color: 'var(--tx)', alignItems: 'center' }}
+            style={{
+              display: 'flex',
+              gap: 16,
+              padding: 16,
+              color: 'var(--tx)',
+              alignItems: 'center',
+            }}
           >
             {l.image_url ? (
               <img
                 src={l.image_url}
                 alt=""
-                style={{ flex: 'none', width: 92, height: 62, objectFit: 'cover', borderRadius: 10 }}
+                style={{
+                  flex: 'none',
+                  width: 92,
+                  height: 62,
+                  objectFit: 'cover',
+                  borderRadius: 10,
+                }}
               />
             ) : (
               <span

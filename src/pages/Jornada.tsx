@@ -17,6 +17,7 @@ import {
   type SkillProgress,
   type WeekBar,
 } from '../services/jornada'
+import { Imagem } from '../components/Imagem'
 import { NAV_ICON } from '../lib/icons'
 import { formatTotalDuration } from '../lib/format'
 import type { ActivityKind, LessonOutline } from '../types/db'
@@ -148,7 +149,7 @@ export default function Jornada() {
     [etapas],
   )
 
-  if (loading || extra) return <PageLoading />
+  if (loading || extra) return <PageLoading titulo="34%" blocos={[300, 420]} />
   if (error) {
     return (
       <div className="k-page" style={{ padding: 48 }}>
@@ -158,7 +159,7 @@ export default function Jornada() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '40px 48px 90px', maxWidth: 1400 }}>
+    <div className="k-page k-enter" style={{ padding: '40px 48px 90px', maxWidth: 1400 }}>
       <h1 className="k-display k-page-title is-64" style={{ margin: '0 0 12px' }}>
         Minha Jornada
       </h1>
@@ -474,7 +475,13 @@ function EtapaLinha({
     : undefined
 
   return (
-    <div style={{ borderBottom: ultima ? 'none' : '1px solid var(--line)' }}>
+    <div
+      className="k-enter-i"
+      style={{
+        ['--i' as string]: indice - 1,
+        borderBottom: ultima ? 'none' : '1px solid var(--line)',
+      }}
+    >
       <button
         onClick={onToggle}
         style={{
@@ -563,9 +570,10 @@ function EtapaLinha({
 
       {aberta && etapa.atividades.length > 0 && (
         <div style={{ padding: '0 0 20px 63px' }}>
-          {etapa.atividades.map((a) => (
+          {etapa.atividades.map((a, i) => (
             <AtividadeLinha
               key={a.id}
+              indice={i}
               aula={a}
               estado={
                 progresso.get(a.id)?.completed_at
@@ -587,10 +595,12 @@ function AtividadeLinha({
   aula,
   estado,
   atual,
+  indice = 0,
 }: {
   aula: LessonOutline
   estado: 'feita' | 'aberta' | 'bloqueada'
   atual: boolean
+  indice?: number
 }) {
   const t = tipoDaAula(aula)
 
@@ -612,9 +622,7 @@ function AtividadeLinha({
               : `${atual ? 2 : 1.5}px solid ${atual ? 'var(--bronze)' : 'var(--line2)'}`,
         }}
       >
-        {estado === 'feita' && (
-          <Icon d={NAV_ICON.check} size={13} width={2.6} stroke="var(--tx)" />
-        )}
+        {estado === 'feita' && <Icon d={NAV_ICON.check} size={13} width={2.6} stroke="var(--tx)" />}
       </span>
 
       <Icon
@@ -640,14 +648,7 @@ function AtividadeLinha({
         {aula.title}
       </span>
 
-      <span
-        style={{
-          flex: 'none',
-          fontSize: 15,
-          color: 'var(--tx2)',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <span style={{ flex: 'none', fontSize: 15, color: 'var(--tx2)', whiteSpace: 'nowrap' }}>
         {t.label} · {minutos(aula.duration_seconds)}
       </span>
 
@@ -700,6 +701,7 @@ function AtividadeLinha({
   )
 
   const estilo: React.CSSProperties = {
+    ['--i' as string]: indice,
     display: 'flex',
     alignItems: 'center',
     gap: 14,
@@ -713,11 +715,19 @@ function AtividadeLinha({
   }
 
   if (estado === 'bloqueada') {
-    return <div style={{ ...estilo, cursor: 'default' }}>{conteudo}</div>
+    return (
+      <div className="k-enter-i" style={{ ...estilo, cursor: 'default' }}>
+        {conteudo}
+      </div>
+    )
   }
 
   return (
-    <Link to={`/aula/${aula.id}`} className={atual ? undefined : 'k-row'} style={estilo}>
+    <Link
+      to={`/aula/${aula.id}`}
+      className={atual ? 'k-enter-i' : 'k-row k-enter-i'}
+      style={estilo}
+    >
       {conteudo}
     </Link>
   )
@@ -742,27 +752,7 @@ function ProximaAtividadeCard({
 
   return (
     <section className="k-card" style={{ padding: 0, overflow: 'hidden' }}>
-      <div
-        style={{
-          height: 150,
-          background: imagem
-            ? `center/cover no-repeat url(${JSON.stringify(imagem)})`
-            : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {!imagem && (
-          <Icon
-            d={NAV_ICON.spark}
-            size={44}
-            stroke="var(--champagne)"
-            width={1.1}
-            style={{ opacity: 0.45 }}
-          />
-        )}
-      </div>
+      <Imagem src={imagem} alt="" altura={150} raio={0} tamanhoIcone={44} />
 
       <div style={{ padding: 24 }}>
         <Kicker style={{ marginBottom: 16 }}>Próxima atividade</Kicker>

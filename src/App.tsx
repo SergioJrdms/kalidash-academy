@@ -46,6 +46,26 @@ function FullScreenLoading() {
   )
 }
 
+/**
+ * Uma tela do aluno, com a própria espera.
+ *
+ * Sem isto, só a Início tinha Suspense: trocar para Explorar ou Eventos
+ * caía no Suspense de fora e apagava a casca toda — menu, topo, tudo —
+ * para pôr um giro no meio do nada. Agora a casca fica parada e só o
+ * miolo mostra o esqueleto, no formato da tela que está vindo.
+ */
+function Pagina({
+  children,
+  titulo,
+  blocos,
+}: {
+  children: React.ReactNode
+  titulo?: string
+  blocos?: number[]
+}) {
+  return <Suspense fallback={<PageLoading titulo={titulo} blocos={blocos} />}>{children}</Suspense>
+}
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
   const location = useLocation()
@@ -134,21 +154,77 @@ export default function App() {
               <Route
                 index
                 element={
-                  <Suspense fallback={<PageLoading />}>
+                  <Pagina titulo="38%" blocos={[240, 200, 260]}>
                     <Home />
-                  </Suspense>
+                  </Pagina>
                 }
               />
-              <Route path="explorar" element={<Explorar />} />
+              <Route
+                path="explorar"
+                element={
+                  <Pagina titulo="44%" blocos={[64, 166, 166, 166]}>
+                    <Explorar />
+                  </Pagina>
+                }
+              />
               {/* endereço antigo do catálogo */}
               <Route path="conteudos" element={<Navigate to="/explorar" replace />} />
-              <Route path="conteudos/:slug" element={<Conteudo />} />
-              <Route path="aula/:lessonId" element={<Aula />} />
-              <Route path="jornada" element={<Jornada />} />
-              <Route path="aplicar" element={<Aplicar />} />
-              <Route path="eventos" element={<Eventos />} />
-              <Route path="comunidade" element={<Comunidade />} />
-              <Route path="perfil" element={<Perfil />} />
+              <Route
+                path="conteudos/:slug"
+                element={
+                  <Pagina titulo="42%" blocos={[260, 180, 140, 380]}>
+                    <Conteudo />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="aula/:lessonId"
+                element={
+                  <Pagina titulo="60%" blocos={[420, 220]}>
+                    <Aula />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="jornada"
+                element={
+                  <Pagina titulo="34%" blocos={[300, 420]}>
+                    <Jornada />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="aplicar"
+                element={
+                  <Pagina titulo="18%" blocos={[520, 150]}>
+                    <Aplicar />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="eventos"
+                element={
+                  <Pagina titulo="20%" blocos={[560, 180]}>
+                    <Eventos />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="comunidade"
+                element={
+                  <Pagina titulo="26%" blocos={[96, 300, 240]}>
+                    <Comunidade />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="perfil"
+                element={
+                  <Pagina titulo="30%" blocos={[232, 96, 330, 150]}>
+                    <Perfil />
+                  </Pagina>
+                }
+              />
             </Route>
 
             {/* ---------- admin ---------- */}
@@ -161,13 +237,62 @@ export default function App() {
               }
             >
               <Route index element={<Navigate to="/admin/cursos" replace />} />
-              <Route path="cursos" element={<AdminCourses />} />
-              <Route path="cursos/:courseId" element={<AdminCourseEdit />} />
-              <Route path="aulas/:lessonId" element={<AdminLessonEdit />} />
-              <Route path="eventos" element={<AdminEvents />} />
-              <Route path="comunidade" element={<AdminComunidade />} />
-              <Route path="usuarios" element={<AdminUsers />} />
-              <Route path="insights" element={<AdminInsights />} />
+              <Route
+                path="cursos"
+                element={
+                  <Pagina>
+                    <AdminCourses />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="cursos/:courseId"
+                element={
+                  <Pagina>
+                    <AdminCourseEdit />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="aulas/:lessonId"
+                element={
+                  <Pagina>
+                    <AdminLessonEdit />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="eventos"
+                element={
+                  <Pagina>
+                    <AdminEvents />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="comunidade"
+                element={
+                  <Pagina>
+                    <AdminComunidade />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="usuarios"
+                element={
+                  <Pagina>
+                    <AdminUsers />
+                  </Pagina>
+                }
+              />
+              <Route
+                path="insights"
+                element={
+                  <Pagina>
+                    <AdminInsights />
+                  </Pagina>
+                }
+              />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

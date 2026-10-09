@@ -6,6 +6,7 @@ import { isLessonUnlocked } from '../services/catalog'
 import { loadBookmarks, toggleBookmark } from '../services/jornada'
 import { supabase } from '../lib/supabase'
 import { formatTotalDuration } from '../lib/format'
+import { Imagem } from '../components/Imagem'
 import { NAV_ICON } from '../lib/icons'
 import type { CourseModule, LessonOutline, LessonProgress, Skill } from '../types/db'
 import { track } from '../lib/analytics'
@@ -45,9 +46,7 @@ export default function Conteudo() {
   useEffect(() => {
     if (!course) return
     // o primeiro módulo com conteúdo nasce aberto, como no desenho
-    const primeiro = course.modules.find((m) =>
-      course.lessons.some((l) => l.module_id === m.id),
-    )
+    const primeiro = course.modules.find((m) => course.lessons.some((l) => l.module_id === m.id))
     setAberto(primeiro?.id ?? null)
   }, [course?.id, course])
 
@@ -83,7 +82,7 @@ export default function Conteudo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, course?.id])
 
-  if (loading) return <PageLoading />
+  if (loading) return <PageLoading titulo="42%" blocos={[260, 180, 140, 380]} />
 
   if (error) {
     return (
@@ -135,7 +134,7 @@ export default function Conteudo() {
   }
 
   return (
-    <div className="k-page" style={{ padding: '28px 36px 90px', maxWidth: 1280 }}>
+    <div className="k-page k-enter" style={{ padding: '28px 36px 90px', maxWidth: 1280 }}>
       <Link
         to="/explorar"
         style={{
@@ -172,14 +171,7 @@ export default function Conteudo() {
           </h1>
 
           {course.description && (
-            <p
-              style={{
-                fontSize: 15,
-                lineHeight: 1.6,
-                color: 'var(--tx2)',
-                margin: '0 0 24px',
-              }}
-            >
+            <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--tx2)', margin: '0 0 24px' }}>
               {course.description}
             </p>
           )}
@@ -201,29 +193,14 @@ export default function Conteudo() {
             )}
           </div>
 
-          <div
-            style={{
-              height: 260,
-              borderRadius: 'var(--r-card)',
-              marginBottom: 28,
-              background: capa
-                ? `center/cover no-repeat url(${JSON.stringify(capa)})`
-                : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {!capa && (
-              <Icon
-                d={NAV_ICON.spark}
-                size={54}
-                stroke="var(--champagne)"
-                width={1.1}
-                style={{ opacity: 0.45 }}
-              />
-            )}
-          </div>
+          <Imagem
+            src={capa}
+            alt={course.title}
+            altura={260}
+            raio={14}
+            tamanhoIcone={54}
+            style={{ marginBottom: 28 }}
+          />
 
           {outcomes.length > 0 && (
             <CartaoSuave titulo="O que você vai aprender">
@@ -292,14 +269,7 @@ export default function Conteudo() {
                 overflow: 'hidden',
               }}
             >
-              <h2
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  margin: 0,
-                  padding: '24px 28px 16px',
-                }}
-              >
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, padding: '24px 28px 16px' }}>
                 Conteúdo {eTrilha ? 'da trilha' : 'do curso'}
               </h2>
 
@@ -331,27 +301,7 @@ export default function Conteudo() {
               top: 24,
             }}
           >
-            <div
-              style={{
-                height: 180,
-                background: capa
-                  ? `center/cover no-repeat url(${JSON.stringify(capa)})`
-                  : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {!capa && (
-                <Icon
-                  d={NAV_ICON.spark}
-                  size={36}
-                  stroke="var(--champagne)"
-                  width={1.1}
-                  style={{ opacity: 0.45 }}
-                />
-              )}
-            </div>
+            <Imagem src={capa} alt="" altura={180} raio={0} tamanhoIcone={36} />
 
             <div style={{ padding: 24 }}>
               <div
@@ -538,7 +488,9 @@ function CartaoSuave({ titulo, children }: { titulo: string; children: React.Rea
 
 function Ficha({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+    <div
+      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}
+    >
       <span style={{ fontSize: 13, fontWeight: 600 }}>{rotulo}</span>
       <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{valor}</span>
     </div>
@@ -567,7 +519,10 @@ function Modulo({
   const minutos = Math.round(segundos / 60)
 
   return (
-    <div style={{ borderTop: '0.8px solid var(--line)' }}>
+    <div
+      className="k-enter-i"
+      style={{ ['--i' as string]: indice - 1, borderTop: '0.8px solid var(--line)' }}
+    >
       <button
         onClick={onAlternar}
         style={{
@@ -639,12 +594,7 @@ function Modulo({
                 {!liberada && <LockIcon size={13} color="var(--tx3)" />}
 
                 <span
-                  style={{
-                    flex: 'none',
-                    fontSize: 12,
-                    color: 'var(--tx2)',
-                    whiteSpace: 'nowrap',
-                  }}
+                  style={{ flex: 'none', fontSize: 12, color: 'var(--tx2)', whiteSpace: 'nowrap' }}
                 >
                   ~{min} min
                 </span>
@@ -652,6 +602,7 @@ function Modulo({
             )
 
             const estilo: React.CSSProperties = {
+              ['--i' as string]: i,
               display: 'flex',
               alignItems: 'center',
               gap: 14,
@@ -659,10 +610,15 @@ function Modulo({
               color: 'var(--tx)',
             }
 
-            if (!liberada) return <div key={l.id} style={estilo}>{conteudo}</div>
+            if (!liberada)
+              return (
+                <div key={l.id} className="k-enter-i" style={estilo}>
+                  {conteudo}
+                </div>
+              )
 
             return (
-              <Link key={l.id} to={`/aula/${l.id}`} style={estilo}>
+              <Link key={l.id} to={`/aula/${l.id}`} className="k-enter-i" style={estilo}>
                 {conteudo}
               </Link>
             )

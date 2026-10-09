@@ -16,6 +16,7 @@ import {
   type GoogleEvent,
 } from '../services/calendar'
 import { Avatar, Banner, Icon, Kicker, PageLoading, Spinner } from '../components/ui'
+import { Imagem } from '../components/Imagem'
 import { NAV_ICON } from '../lib/icons'
 import UnlockModal from '../components/UnlockModal'
 import { track } from '../lib/analytics'
@@ -52,7 +53,9 @@ export default function Eventos() {
         .select('*')
         .eq('status', 'published')
         .order('starts_at', { ascending: true }),
-      userId ? loadRegistrations(userId).catch(() => new Set<string>()) : Promise.resolve(new Set<string>()),
+      userId
+        ? loadRegistrations(userId).catch(() => new Set<string>())
+        : Promise.resolve(new Set<string>()),
     ])
 
     if (evRes.error) setErro('Não conseguimos carregar os eventos agora.')
@@ -170,7 +173,9 @@ export default function Eventos() {
       if (conectado) {
         const de = new Date(mes.getFullYear(), mes.getMonth(), 1)
         const ate = new Date(mes.getFullYear(), mes.getMonth() + 1, 1)
-        void listarAgenda(de, ate).then(setAgenda).catch(() => {})
+        void listarAgenda(de, ate)
+          .then(setAgenda)
+          .catch(() => {})
       }
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível concluir.')
@@ -194,10 +199,10 @@ export default function Eventos() {
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  if (loading) return <PageLoading />
+  if (loading) return <PageLoading titulo="20%" blocos={[560, 180]} />
 
   return (
-    <div className="k-page" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
+    <div className="k-page k-enter" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
       <h1 className="k-display k-page-title is-50" style={{ margin: '0 0 10px' }}>
         Eventos
       </h1>
@@ -221,6 +226,7 @@ export default function Eventos() {
               <LinhaEvento
                 key={e.id}
                 evento={e}
+                indice={i}
                 destaque={i === 0}
                 inscrito={inscritos.has(e.id)}
                 ocupado={ocupado === e.id}
@@ -232,10 +238,11 @@ export default function Eventos() {
 
           {minhas.length > 0 && (
             <CartaoLista titulo="Minhas inscrições" vazio="">
-              {minhas.map((e) => (
+              {minhas.map((e, i) => (
                 <LinhaEvento
                   key={e.id}
                   evento={e}
+                  indice={i}
                   inscrito
                   compacta
                   ocupado={ocupado === e.id}
@@ -248,10 +255,11 @@ export default function Eventos() {
 
           {gravacoes.length > 0 && (
             <CartaoLista titulo="Gravações" vazio="">
-              {gravacoes.map((e) => (
+              {gravacoes.map((e, i) => (
                 <LinhaEvento
                   key={e.id}
                   evento={e}
+                  indice={i}
                   gravacao
                   ocupado={false}
                   onInscrever={() => {}}
@@ -384,6 +392,7 @@ function LinhaEvento({
   inscrito,
   compacta,
   gravacao,
+  indice = 0,
   ocupado,
   onInscrever,
   onAbrir,
@@ -393,6 +402,7 @@ function LinhaEvento({
   inscrito?: boolean
   compacta?: boolean
   gravacao?: boolean
+  indice?: number
   ocupado: boolean
   onInscrever: () => void
   onAbrir: () => void
@@ -401,7 +411,9 @@ function LinhaEvento({
 
   return (
     <div
+      className="k-enter-i"
       style={{
+        ['--i' as string]: indice,
         display: 'flex',
         alignItems: 'flex-start',
         gap: 18,
@@ -428,31 +440,15 @@ function LinhaEvento({
       </div>
 
       {!compacta && (
-        <div
-          style={{
-            flex: 'none',
-            width: 110,
-            height: 72,
-            borderRadius: 10,
-            overflow: 'hidden',
-            background: evento.thumbnail_url
-              ? `center/cover no-repeat url(${JSON.stringify(evento.thumbnail_url)})`
-              : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {!evento.thumbnail_url && (
-            <Icon
-              d={NAV_ICON.eventos}
-              size={22}
-              stroke="var(--champagne)"
-              width={1.1}
-              style={{ opacity: 0.45 }}
-            />
-          )}
-        </div>
+        <Imagem
+          src={evento.thumbnail_url}
+          alt=""
+          largura={110}
+          altura={72}
+          raio={10}
+          icone={NAV_ICON.eventos}
+          tamanhoIcone={22}
+        />
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -501,7 +497,9 @@ function LinhaEvento({
         </div>
       </div>
 
-      <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 2 }}>
+      <div
+        style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 2 }}
+      >
         {gravacao ? (
           <button onClick={onAbrir} style={botaoFantasma}>
             Assistir
@@ -579,10 +577,22 @@ const linkCancelar: React.CSSProperties = {
 function GoogleMark({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" style={{ flex: 'none' }}>
-      <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z" />
-      <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41 15.4 46 24 46z" />
-      <path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3A22 22 0 002 24c0 3.6.9 6.9 2.3 9.8l7.3-5.7z" />
-      <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 7 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1z" />
+      <path
+        fill="#4285F4"
+        d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41 15.4 46 24 46z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3A22 22 0 002 24c0 3.6.9 6.9 2.3 9.8l7.3-5.7z"
+      />
+      <path
+        fill="#EA4335"
+        d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 7 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1z"
+      />
     </svg>
   )
 }
@@ -782,7 +792,11 @@ function AgendaCard({
       {/* ---------- ação ---------- */}
       <div style={{ marginTop: 18 }}>
         {conectado ? (
-          <button onClick={onDesconectar} disabled={conectando} style={{ ...botaoFantasma, width: '100%', justifyContent: 'center' }}>
+          <button
+            onClick={onDesconectar}
+            disabled={conectando}
+            style={{ ...botaoFantasma, width: '100%', justifyContent: 'center' }}
+          >
             {conectando && <Spinner size={12} color="var(--tx2)" />}
             Desconectar agenda
           </button>

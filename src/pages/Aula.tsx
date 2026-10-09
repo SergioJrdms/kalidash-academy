@@ -77,7 +77,8 @@ export default function Aula() {
         watched.current = v.progress?.watched_seconds ?? 0
       })
       .catch((err: unknown) => {
-        if (active) setError(err instanceof Error ? err.message : 'Não conseguimos abrir esta aula.')
+        if (active)
+          setError(err instanceof Error ? err.message : 'Não conseguimos abrir esta aula.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -135,7 +136,7 @@ export default function Aula() {
     return () => clearTimeout(t)
   }, [nota, notaSalva, salvarNota])
 
-  if (loading || catalogLoading) return <PageLoading />
+  if (loading || catalogLoading) return <PageLoading titulo="60%" blocos={[420, 220]} />
 
   if (error || !view) {
     return (
@@ -207,7 +208,7 @@ export default function Aula() {
   ]
 
   return (
-    <div className="k-page" style={{ padding: '40px 48px 100px', maxWidth: 1320 }}>
+    <div className="k-page k-enter" style={{ padding: '40px 48px 100px', maxWidth: 1320 }}>
       <Link
         to={course ? `/conteudos/${course.slug}` : '/explorar'}
         style={{ color: 'var(--tx2)', fontSize: 13.5, display: 'inline-block', marginBottom: 20 }}
@@ -263,7 +264,11 @@ export default function Aula() {
                   cursor: 'pointer',
                 }}
               >
-                {doneBusy ? <Spinner size={13} /> : <Icon d={NAV_ICON.check} size={14} width={2.2} />}
+                {doneBusy ? (
+                  <Spinner size={13} />
+                ) : (
+                  <Icon d={NAV_ICON.check} size={14} width={2.2} />
+                )}
                 {isDone ? 'Marcada como concluída' : 'Marcar como concluída'}
               </button>
             </div>
@@ -284,7 +289,14 @@ export default function Aula() {
           )}
 
           {/* ---------------- abas ---------------- */}
-          <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--line)', marginBottom: 26 }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              borderBottom: '1px solid var(--line)',
+              marginBottom: 26,
+            }}
+          >
             {abas.map((a) => (
               <button
                 key={a.id}
@@ -458,7 +470,11 @@ export default function Aula() {
                     {labDaAula.minutes ? ` · ${labDaAula.minutes} min` : ''}
                   </div>
                 </div>
-                <Link to="/aplicar" style={{ marginLeft: 'auto', flex: 'none' }} aria-label="Abrir o lab">
+                <Link
+                  to="/aplicar"
+                  style={{ marginLeft: 'auto', flex: 'none' }}
+                  aria-label="Abrir o lab"
+                >
                   <Icon d={NAV_ICON.arrowRight} size={18} stroke="var(--tx2)" />
                 </Link>
               </div>
@@ -469,7 +485,10 @@ export default function Aula() {
             <section className="k-card" style={{ padding: 22 }}>
               <Kicker style={{ marginBottom: 16 }}>Próxima aula</Kicker>
               <Link to={`/aula/${next.id}`}>
-                <div className="k-display" style={{ fontSize: 17, lineHeight: 1.3, marginBottom: 8, color: 'var(--tx)' }}>
+                <div
+                  className="k-display"
+                  style={{ fontSize: 17, lineHeight: 1.3, marginBottom: 8, color: 'var(--tx)' }}
+                >
                   {next.title}
                 </div>
               </Link>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { FotoSobreposta } from './Imagem'
 import { NAV_ICON } from '../lib/icons'
 import { firstName, initials } from '../lib/format'
 import { Icon } from './ui'
@@ -17,7 +18,11 @@ const NAV = [
 
 function activeKey(pathname: string): string {
   if (pathname === '/') return 'home'
-  if (pathname.startsWith('/explorar') || pathname.startsWith('/conteudos') || pathname.startsWith('/aula'))
+  if (
+    pathname.startsWith('/explorar') ||
+    pathname.startsWith('/conteudos') ||
+    pathname.startsWith('/aula')
+  )
     return 'explorar'
   if (pathname.startsWith('/jornada')) return 'jornada'
   if (pathname.startsWith('/aplicar')) return 'aplicar'
@@ -108,7 +113,6 @@ export default function AppLayout() {
             </Link>
           )
         })}
-
       </nav>
 
       <div style={{ flex: 1, minHeight: 24 }} />
@@ -179,7 +183,6 @@ export default function AppLayout() {
           )}
         </div>
       </div>
-
     </aside>
   )
 
@@ -260,18 +263,19 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
         width: 32,
         height: 32,
         borderRadius: '50%',
-        background: url
-          ? `center/cover no-repeat url(${JSON.stringify(url)})`
-          : 'var(--imperial)',
+        background: 'var(--imperial)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 600,
         fontSize: 12,
         color: 'var(--bg)',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      {url ? '' : name}
+      {name}
+      <FotoSobreposta src={url} />
     </div>
   )
 }

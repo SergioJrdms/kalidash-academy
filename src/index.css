@@ -52,7 +52,22 @@
   /* fundo dos cartoes de conteudo da trilha: quase branco, um grau
      acima do --surface2 */
   --card-soft: #fdfcfa;
+
+  /* Esqueleto. A vaga precisa se ler tanto sobre o fundo da pagina
+     quanto dentro de um cartao branco, entao ela e um tom de linha, nao
+     de superficie, e o brilho passa por cima dela. */
+  --skel: #e8e1d7;
+  --skel-brilho: #f6f2eb;
   --r-control: 10px;
+
+  /* Movimento. Tres duracoes e duas curvas, usadas em tudo — assim a
+     interface se move com o mesmo sotaque em qualquer tela.
+     --mo-out desacelera na chegada: entra rapido e assenta. */
+  --mo-fast: 130ms;
+  --mo-base: 220ms;
+  --mo-slow: 340ms;
+  --mo-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --mo-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --r-card: 16px;
 
   color-scheme: light;
@@ -178,6 +193,41 @@ textarea::placeholder {
   }
 }
 
+/* Entrada padrao: sobe 10px e aparece. Saida nao tem keyframe proprio —
+   quando algo sai, sai mais rapido do que entrou. */
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes entradaSuave {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Barra de progresso sem fim conhecido: vai e volta em vez de fingir
+   uma porcentagem que nao existe. */
+@keyframes correr {
+  0% {
+    transform: translateX(-100%) scaleX(0.4);
+  }
+  50% {
+    transform: translateX(0%) scaleX(0.7);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.4);
+  }
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -195,11 +245,35 @@ textarea::placeholder {
    --------------------------------------------------------------------- */
 
 .k-fade {
-  animation: fadeUp 0.3s ease both;
+  animation: fadeUp var(--mo-slow) var(--mo-out) both;
 }
 
 .k-pop {
-  animation: pop 0.2s ease both;
+  animation: pop var(--mo-base) var(--mo-out) both;
+}
+
+/* Entrada de bloco. Em listas, `--i` escalona o atraso: o olho segue a
+   ordem em vez de tudo pular junto. O teto de 8 evita que o decimo
+   item chegue tarde demais. */
+.k-enter {
+  animation: entrada var(--mo-base) var(--mo-out) both;
+}
+
+.k-enter-i {
+  animation: entrada var(--mo-base) var(--mo-out) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 45ms);
+}
+
+.k-surge {
+  animation: entradaSuave var(--mo-base) var(--mo-out) both;
+}
+
+/* Resposta ao toque: afunda de leve enquanto o dedo esta no botao. */
+.k-press {
+  transition: transform var(--mo-fast) var(--mo-out);
+}
+.k-press:active {
+  transform: scale(0.985);
 }
 
 .k-card {
@@ -209,31 +283,69 @@ textarea::placeholder {
 }
 
 .k-hoverable {
-  transition: border-color 0.18s, transform 0.2s, background 0.18s;
+  transition:
+    border-color var(--mo-base) var(--mo-out),
+    transform var(--mo-base) var(--mo-out),
+    background var(--mo-base) var(--mo-out);
 }
 .k-hoverable:hover {
   border-color: var(--stone) !important;
 }
 
+.k-lift {
+  transition: transform var(--mo-base) var(--mo-out);
+}
 .k-lift:hover {
   transform: translateY(-2px);
 }
 
+.k-row {
+  transition: background var(--mo-fast) var(--mo-out);
+}
 .k-row:hover {
   background: var(--surface2);
 }
 
+.k-nav {
+  transition:
+    background var(--mo-fast) var(--mo-out),
+    color var(--mo-fast) var(--mo-out);
+}
 .k-nav:hover {
   background: var(--bg);
 }
 
+/* Imagem preguicosa: nasce invisivel e aparece quando o arquivo chega,
+   para a tela nao piscar o retangulo cru. */
+.k-img {
+  opacity: 0;
+  transition: opacity var(--mo-slow) var(--mo-out);
+}
+.k-img.is-pronta {
+  opacity: 1;
+}
+
+/* Fio de progresso no topo, enquanto uma rota preguicosa carrega. */
+.k-rota {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 200;
+  overflow: hidden;
+  background: transparent;
+}
+.k-rota::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bronze);
+  animation: correr 1.1s var(--mo-in-out) infinite;
+}
+
 .k-skel {
-  background: linear-gradient(
-    90deg,
-    var(--surface) 0px,
-    var(--surface2) 120px,
-    var(--surface) 240px
-  );
+  background: linear-gradient(90deg, var(--skel) 0px, var(--skel-brilho) 120px, var(--skel) 240px);
   background-size: 800px 100%;
   animation: shimmer 1.3s linear infinite;
   border-radius: var(--r-card);
@@ -241,6 +353,42 @@ textarea::placeholder {
 
 .k-spin {
   animation: spin 0.8s linear infinite;
+}
+
+/* Quem pediu menos movimento recebe menos movimento. Nao e enfeite:
+   animacao pode causar enjoo e dor de cabeca de verdade. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    /* Sem isto, o escalonamento da lista continua valendo: o decimo item
+       ficaria invisivel por um terco de segundo antes de simplesmente
+       aparecer, que e exatamente o que se queria evitar. */
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .k-img {
+    opacity: 1;
+  }
+  .k-lift:hover {
+    transform: none;
+  }
+}
+
+/* So para leitor de tela: anuncia "Carregando" sem ocupar espaco. */
+.k-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 button:disabled {
@@ -411,8 +559,6 @@ mux-player {
   align-items: stretch;
   gap: 20px;
 }
-
-
 
 @media (max-width: 900px) {
   .k-home-grid {
