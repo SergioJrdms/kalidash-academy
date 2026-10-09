@@ -5,6 +5,9 @@ import { identify, initAnalytics, resetIdentity, trackPageview } from './lib/ana
 import AppLayout from './components/AppLayout'
 import { PageLoading, Spinner } from './components/ui'
 
+const Landing = lazy(() => import('./pages/Landing'))
+const Privacidade = lazy(() => import('./pages/Privacidade'))
+const Termos = lazy(() => import('./pages/Termos'))
 const Login = lazy(() => import('./pages/Login'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
@@ -47,7 +50,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation()
 
   if (loading) return <FullScreenLoading />
-  if (!session) return <Navigate to="/login" state={{ from: location }} replace />
+
+  if (!session) {
+    // A raiz tem versão pública. A verificação do Google recusou o app
+    // justamente porque a página inicial ficava atrás do login e não
+    // explicava a finalidade; as demais telas continuam protegidas.
+    if (location.pathname === '/') return <Landing />
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
   return <>{children}</>
 }
 
@@ -96,6 +107,10 @@ export default function App() {
         <AnalyticsBoot />
         <Suspense fallback={<FullScreenLoading />}>
           <Routes>
+            {/* ---------- páginas abertas ---------- */}
+            <Route path="/privacidade" element={<Privacidade />} />
+            <Route path="/termos" element={<Termos />} />
+
             <Route path="/login" element={<Login />} />
             <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route

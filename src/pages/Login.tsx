@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth, type OAuthProvider } from '../hooks/useAuth'
 import { Banner, Field, inputStyle, Spinner } from '../components/ui'
 
@@ -450,6 +450,26 @@ export default function Login() {
               )}
             </div>
           )}
+
+          <div
+            style={{
+              textAlign: 'center',
+              fontSize: 12,
+              color: 'var(--tx3)',
+              marginTop: 22,
+              lineHeight: 1.7,
+            }}
+          >
+            Ao continuar você aceita os{' '}
+            <Link to="/termos" style={{ color: 'var(--tx2)' }}>
+              Termos de Serviço
+            </Link>{' '}
+            e a{' '}
+            <Link to="/privacidade" style={{ color: 'var(--tx2)' }}>
+              Política de Privacidade
+            </Link>
+            .
+          </div>
         </form>
       </div>
     </div>
