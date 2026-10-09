@@ -159,7 +159,7 @@ export default function Jornada() {
 
   return (
     <div className="k-page" style={{ padding: '40px 48px 90px', maxWidth: 1400 }}>
-      <h1 className="k-display k-home-title" style={{ margin: '0 0 12px' }}>
+      <h1 className="k-display k-page-title is-64" style={{ margin: '0 0 12px' }}>
         Minha Jornada
       </h1>
       <p style={{ color: 'var(--tx2)', fontSize: 16.5, margin: '0 0 30px' }}>

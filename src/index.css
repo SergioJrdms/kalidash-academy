@@ -409,24 +409,11 @@ mux-player {
   gap: 20px;
 }
 
-.k-home-title {
-  font-size: 64px;
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-}
 
-@media (max-width: 1180px) {
-  .k-home-title {
-    font-size: 52px;
-  }
-}
 
 @media (max-width: 900px) {
   .k-home-grid {
     grid-template-columns: 1fr;
-  }
-  .k-home-title {
-    font-size: 34px;
   }
 }
 
@@ -453,5 +440,56 @@ mux-player {
 @media (max-width: 1000px) {
   .k-jornada-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   tela de Aplicar
+   --------------------------------------------------------------------- */
+
+/* Coluna da direita fixa em 300px, como no desenho; a da esquerda fica
+   com o resto. */
+.k-aplicar-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px;
+}
+
+@media (max-width: 1000px) {
+  .k-aplicar-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Titulo de pagina. O desenho nao usa um tamanho so: Inicio sai em 52,
+   Aplicar em 60 e Minha Jornada em 64. As variantes existem por isso. */
+.k-page-title {
+  font-size: 60px;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.k-page-title.is-52 {
+  font-size: 52px;
+}
+
+.k-page-title.is-64 {
+  font-size: 64px;
+}
+
+@media (max-width: 1180px) {
+  .k-page-title,
+  .k-page-title.is-52,
+  .k-page-title.is-64 {
+    font-size: 46px;
+  }
+}
+
+@media (max-width: 900px) {
+  .k-page-title,
+  .k-page-title.is-52,
+  .k-page-title.is-64 {
+    font-size: 32px;
   }
 }

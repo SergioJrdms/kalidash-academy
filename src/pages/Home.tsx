@@ -157,7 +157,7 @@ export default function Home() {
       <Kicker style={{ marginBottom: 14 }}>
         {cont ? 'Bem-vinda de volta' : 'Comece aqui'}
       </Kicker>
-      <h1 className="k-display k-home-title" style={{ margin: '0 0 14px' }}>
+      <h1 className="k-display k-page-title is-52" style={{ margin: '0 0 14px' }}>
         {cont ? `${greeting()}, ${nome || 'tudo bem'}.` : 'Bem-vinda ao Kalidash Academy.'}
       </h1>
       <p style={{ color: 'var(--tx2)', fontSize: 16.5, margin: '0 0 36px' }}>
