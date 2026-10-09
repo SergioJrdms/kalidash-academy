@@ -31,6 +31,40 @@ import {
   SkillChip,
 } from '../components/ui'
 
+/**
+ * O evento do cartao da direita.
+ *
+ * Procura o proximo marcado. Se nao houver nenhum pela frente — e isso
+ * acontece sempre que a agenda fica sem data nova — devolve o ultimo que
+ * ja aconteceu, para o cartao continuar existindo. Antes, nesse caso o
+ * lugar dele na grade ficava simplesmente vazio.
+ */
+async function carregarEvento(): Promise<AcademyEvent | null> {
+  const agora = new Date().toISOString()
+
+  const { data: proximo } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'published')
+    .gte('starts_at', agora)
+    .order('starts_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (proximo) return proximo as AcademyEvent
+
+  const { data: ultimo } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'published')
+    .lt('starts_at', agora)
+    .order('starts_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return (ultimo as AcademyEvent | null) ?? null
+}
+
 export default function Home() {
   const { profile, isPaid, session } = useAuth()
   const { courses, loading, error, reload } = useCatalog()
@@ -53,15 +87,7 @@ export default function Home() {
       loadSkills(userId).catch(() => [] as SkillProgress[]),
       loadJourney(userId).catch(() => null),
       loadLabs(userId).catch(() => [] as LabView[]),
-      supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'published')
-        .gte('starts_at', new Date().toISOString())
-        .order('starts_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
-        .then(({ data }) => (data as AcademyEvent | null) ?? null),
+      carregarEvento(),
     ])
       .then(([c, s, j, l, e]) => {
         if (!active) return
@@ -148,11 +174,29 @@ export default function Home() {
         )}
         <ProximoPassoCard lab={proximoLab} />
 
-        {journey ? <JornadaCard journey={journey} /> : <div />}
+        {journey ? (
+          <JornadaCard journey={journey} />
+        ) : (
+          <CartaoVazio
+            titulo="Sua jornada"
+            texto="Assim que uma trilha for publicada, o seu caminho aparece aqui."
+            para="/explorar"
+            cta="Explorar conteúdos"
+          />
+        )}
         <CompetenciasCard skills={skills} emFoco={emFoco} />
 
         <AulasCurtasCard itens={curtos} recomendados={recomendados} />
-        {nextEvent ? <EventoCard evento={nextEvent} /> : <div />}
+        {nextEvent ? (
+          <EventoCard evento={nextEvent} />
+        ) : (
+          <CartaoVazio
+            titulo="Próximo evento"
+            texto="Nenhum encontro publicado por enquanto. Quando a próxima data sair, ela aparece aqui."
+            para="/eventos"
+            cta="Ver eventos"
+          />
+        )}
       </div>
     </div>
   )
@@ -831,11 +875,17 @@ function SeloEvento({ children }: { children: React.ReactNode }) {
 
 function EventoCard({ evento }: { evento: AcademyEvent }) {
   const d = eventDay(evento.starts_at)
-  const aoVivo = !evento.recording_url
+  const jaPassou = new Date(evento.starts_at).getTime() < Date.now()
+  const aoVivo = !jaPassou && !evento.recording_url
+  const temGravacao = Boolean(evento.recording_url)
 
   return (
     <Card style={{ display: 'flex', flexDirection: 'column' }}>
-      <CardHead titulo="Próximo evento" to="/eventos" linkLabel="Ver todas" />
+      <CardHead
+        titulo={jaPassou ? 'Último evento' : 'Próximo evento'}
+        to="/eventos"
+        linkLabel="Ver todas"
+      />
 
       <div style={{ display: 'flex', gap: 18, marginBottom: 18 }}>
         <div style={{ textAlign: 'center', flex: 'none', paddingTop: 2 }}>
@@ -858,6 +908,8 @@ function EventoCard({ evento }: { evento: AcademyEvent }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 7, marginBottom: 11, flexWrap: 'wrap' }}>
             {aoVivo && <SeloEvento>Live</SeloEvento>}
+            {jaPassou && temGravacao && <SeloEvento>Gravação</SeloEvento>}
+            {jaPassou && !temGravacao && <SeloEvento>Encerrado</SeloEvento>}
             <SeloEvento>{evento.access_type === 'free' ? 'Gratuito' : 'Premium'}</SeloEvento>
           </div>
           <h3 className="k-display" style={{ fontSize: 20, lineHeight: 1.26 }}>
@@ -909,7 +961,53 @@ function EventoCard({ evento }: { evento: AcademyEvent }) {
           gap: 10,
         }}
       >
-        Inscrever-se
+        {jaPassou ? (temGravacao ? 'Assistir gravação' : 'Ver eventos') : 'Inscrever-se'}
+        <Icon d={NAV_ICON.arrow} size={16} />
+      </Link>
+    </Card>
+  )
+}
+
+/**
+ * Preenche uma celula da grade quando o dado dela nao existe. Sem isto o
+ * lugar fica em branco e a tela parece quebrada — foi o que aconteceu
+ * com o cartao de evento quando a agenda ficou sem data futura.
+ */
+function CartaoVazio({
+  titulo,
+  texto,
+  para,
+  cta,
+}: {
+  titulo: string
+  texto: string
+  para: string
+  cta: string
+}) {
+  return (
+    <Card style={{ display: 'flex', flexDirection: 'column' }}>
+      <Kicker style={{ marginBottom: 16 }}>{titulo}</Kicker>
+      <p style={{ fontSize: 15, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 22px' }}>
+        {texto}
+      </p>
+      <div style={{ flex: 1 }} />
+      <Link
+        to={para}
+        className="k-hoverable"
+        style={{
+          border: '0.8px solid var(--line2)',
+          borderRadius: 'var(--r-control)',
+          padding: '12px 0',
+          fontSize: 14.5,
+          fontWeight: 600,
+          color: 'var(--tx)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+        }}
+      >
+        {cta}
         <Icon d={NAV_ICON.arrow} size={16} />
       </Link>
     </Card>

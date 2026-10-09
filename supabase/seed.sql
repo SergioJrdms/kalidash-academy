@@ -308,31 +308,34 @@ on conflict (id) do nothing;
 -- ---------------------------------------------------------------------
 -- EVENTOS
 -- ---------------------------------------------------------------------
+-- As datas sao relativas a hoje, nao a um mes fixo do ano. Ancoradas em
+-- setembro, elas envelheciam: passado setembro, a Home ficava sem nenhum
+-- evento futuro e o cartao "Proximo evento" sumia da grade.
 insert into public.events
   (id, title, description, starts_at, format, instructor_name, access_type, status, recording_url)
 values
   ('d0000000-0000-4000-8000-000000000001',
    'Como identificar oportunidades reais de IA na sua operação',
    'Encontro ao vivo para ler a própria área antes de escolher qualquer ferramenta.',
-   ((date_trunc('year', now())::date + interval '8 month' + interval '8 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
+   ((current_date + interval '9 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
    'Webinar', 'Time Kalidash', 'free', 'published', null),
 
   ('d0000000-0000-4000-8000-000000000002',
    'Clínica de operação: onde a IA entra primeiro',
    'Traga um processo da sua área. Analisamos ao vivo.',
-   ((date_trunc('year', now())::date + interval '8 month' + interval '22 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
+   ((current_date + interval '23 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
    'Live', 'Time Kalidash', 'free', 'published', null),
 
   ('d0000000-0000-4000-8000-000000000003',
    'Cloud na prática: o que sustenta uma automação',
    'O que precisa existir por baixo para uma automação rodar todo dia.',
-   ((date_trunc('year', now())::date + interval '9 month' + interval '6 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
+   ((current_date + interval '37 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
    'Live', 'César Germano', 'paid', 'published', null),
 
   ('d0000000-0000-4000-8000-000000000004',
    'Abertura da AI League — o que vamos construir juntos',
    'Gravação da abertura da AI League.',
-   ((date_trunc('year', now())::date + interval '7 month' + interval '11 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
+   ((current_date - interval '28 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
    'Gravação', 'Time Kalidash', 'free', 'published', 'https://www.youtube.com/'),
 
   ('d0000000-0000-4000-8000-000000000005',
