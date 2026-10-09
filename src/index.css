@@ -525,8 +525,16 @@ mux-player {
 .k-comunidade-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
-  align-items: start;
+  align-items: stretch;
   gap: 20px;
+}
+
+/* A faixa do WhatsApp: tres grupos lado a lado, empilhando quando o
+   espaco acaba. Os elementos sao os mesmos do cartao antigo. */
+.k-whats-faixa {
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
 }
 
 /* Tres pessoas por linha, como no desenho; quebra sozinho quando nao cabe. */

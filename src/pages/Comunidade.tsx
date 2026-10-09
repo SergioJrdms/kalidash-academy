@@ -6,10 +6,8 @@ import { track } from '../lib/analytics'
 import {
   loadCommunityStats,
   loadDirectory,
-  loadJobs,
   saveCommunityProfile,
   type DirectoryPerson,
-  type JobOpening,
 } from '../services/comunidade'
 import { Banner, Icon, Kicker, PageLoading, inputStyle } from '../components/ui'
 
@@ -23,7 +21,6 @@ export default function Comunidade() {
   const userId = session?.user.id ?? null
 
   const [pessoas, setPessoas] = useState<DirectoryPerson[]>([])
-  const [vagas, setVagas] = useState<JobOpening[]>([])
   const [stats, setStats] = useState({ members: 0, jobs: 0 })
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -31,9 +28,8 @@ export default function Comunidade() {
   const load = useCallback(async () => {
     setErro(null)
     try {
-      const [p, v, s] = await Promise.all([loadDirectory(), loadJobs(), loadCommunityStats()])
+      const [p, s] = await Promise.all([loadDirectory(), loadCommunityStats()])
       setPessoas(p)
-      setVagas(v)
       setStats(s)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar a Comunidade.')
@@ -52,6 +48,10 @@ export default function Comunidade() {
 
   /** Quem dá para alcançar: todo mundo do diretório que não é você. */
   const disponiveis = sugestoes.length
+  const comLinkedin = useMemo(
+    () => pessoas.filter((p) => p.linkedin_url).length,
+    [pessoas],
+  )
 
 
 
@@ -128,7 +128,7 @@ export default function Comunidade() {
         {[
           { icone: NAV_ICON.comunidade, n: stats.members, l: 'membros na comunidade' },
           { icone: NAV_ICON.aplicar, n: disponiveis, l: 'conexões disponíveis' },
-          { icone: NAV_ICON.note, n: stats.jobs, l: 'vagas e oportunidades' },
+          { icone: NAV_ICON.aplicar, n: comLinkedin, l: 'perfis com LinkedIn' },
         ].map((x) => (
           <div
             key={x.l}
@@ -152,78 +152,45 @@ export default function Comunidade() {
       </section>
 
       <div className="k-comunidade-grid">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
-          {/* ---------------- networking ---------------- */}
-          <section className="k-card" style={{ padding: '22px 24px' }}>
-            <CabecaSecao
-              kicker="Networking"
-              titulo="Pessoas para você conhecer"
-              link={noDiretorio && sugestoes.length > 3 ? 'Ver todos' : undefined}
-            />
+        {/* ---------------- networking ---------------- */}
+        <section className="k-card" style={{ padding: '22px 24px', minWidth: 0 }}>
+          <CabecaSecao
+            kicker="Networking"
+            titulo="Pessoas para você conhecer"
+            link={noDiretorio && sugestoes.length > 3 ? 'Ver todos' : undefined}
+          />
 
-            {/* O convite vira uma faixa, nao substitui a grade: antes, quem
-                ainda nao tinha entrado no diretorio nao via ninguem. */}
-            {!noDiretorio && (
-              <ConviteDiretorio
-                userId={userId}
-                onEntrou={async () => {
-                  await refreshProfile()
-                  await load()
-                }}
-              />
-            )}
-
-            {sugestoes.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--tx2)', lineHeight: 1.6, margin: 0 }}>
-                {noDiretorio
-                  ? 'Você é a primeira pessoa no diretório. Conforme a turma for entrando, os perfis aparecem aqui.'
-                  : 'Ninguém entrou no diretório ainda. Seja o primeiro e as próximas pessoas encontram você aqui.'}
-              </p>
-            ) : (
-              <div className="k-pessoas-grid">
-                {sugestoes.slice(0, 6).map((p, i) => (
-                  <CartaoPessoa key={p.id} pessoa={p} indice={i} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* ---------------- vagas ---------------- */}
-          <section className="k-card" style={{ padding: '22px 24px' }}>
-            <CabecaSecao
-              kicker="Oportunidades"
-              titulo="Vagas em destaque"
-              link={vagas.length > 0 ? 'Ver todas' : undefined}
-            />
-
-            {vagas.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--tx2)', lineHeight: 1.6, margin: 0 }}>
-                Nenhuma vaga publicada agora. Quando a equipe abrir uma oportunidade, ela
-                aparece aqui.
-              </p>
-            ) : (
-              <div>
-                {vagas.map((v, i) => (
-                  <LinhaVaga key={v.id} vaga={v} primeira={i === 0} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ---------------- lateral ---------------- */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
-          <CartaoWhatsApp />
-          {noDiretorio && (
-            <PerfilNaComunidade
-              userId={userId}
-              onSalvo={async () => {
-                await refreshProfile()
-                await load()
-              }}
-            />
+          {sugestoes.length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--tx2)', lineHeight: 1.6, margin: 0 }}>
+              {noDiretorio
+                ? 'Você é a primeira pessoa no diretório. Conforme a turma for entrando, os perfis aparecem aqui.'
+                : 'Ninguém entrou no diretório ainda. Entre ao lado e as próximas pessoas encontram você aqui.'}
+            </p>
+          ) : (
+            <div className="k-pessoas-grid">
+              {sugestoes.slice(0, 6).map((p, i) => (
+                <CartaoPessoa key={p.id} pessoa={p} indice={i} />
+              ))}
+            </div>
           )}
+        </section>
+
+        {/* ---------------- como você aparece ---------------- */}
+        <aside style={{ minWidth: 0 }}>
+          <PerfilNaComunidade
+            userId={userId}
+            noDiretorio={noDiretorio}
+            onSalvo={async () => {
+              await refreshProfile()
+              await load()
+            }}
+          />
         </aside>
+      </div>
+
+      {/* ---------------- faixa do WhatsApp ---------------- */}
+      <div style={{ marginTop: 20 }}>
+        <CartaoWhatsApp />
       </div>
     </div>
   )
@@ -423,308 +390,175 @@ const botaoContorno: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-function LinhaVaga({ vaga, primeira }: { vaga: JobOpening; primeira: boolean }) {
-  const conteudo = (
-    <>
-      <span
-        style={{
-          flex: 'none',
-          width: 42,
-          height: 42,
-          borderRadius: 10,
-          background: 'var(--bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Icon d={NAV_ICON.note} size={18} stroke="var(--bronze)" />
-      </span>
-
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
-          {vaga.title}
-        </span>
-        <span style={{ display: 'block', fontSize: 12, color: 'var(--tx2)', marginBottom: 5 }}>
-          {vaga.company}
-        </span>
-        <span
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            flexWrap: 'wrap',
-            fontSize: 11.5,
-            color: 'var(--tx3)',
-          }}
-        >
-          {vaga.location && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Icon d={NAV_ICON.explorar} size={13} stroke="var(--tx3)" />
-              {vaga.location}
-            </span>
-          )}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <Icon d={NAV_ICON.clock} size={13} stroke="var(--tx3)" />
-            {diasAtras(vaga.posted_at)}
-          </span>
-        </span>
-      </span>
-
-      {vaga.contract_type && (
-        <span
-          style={{
-            flex: 'none',
-            background: 'var(--surface2)',
-            color: 'var(--tx2)',
-            borderRadius: 99,
-            padding: '4px 9px',
-            fontSize: 10,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {vaga.contract_type}
-        </span>
-      )}
-
-      <span
-        style={{
-          flex: 'none',
-          width: 30,
-          height: 30,
-          borderRadius: '50%',
-          border: '0.8px solid var(--line2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Icon d={NAV_ICON.arrow} size={13} stroke="var(--tx2)" />
-      </span>
-    </>
-  )
-
-  const estilo: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 14,
-    padding: '17px 0',
-    borderTop: primeira ? 'none' : '0.8px solid var(--line)',
-    color: 'var(--tx)',
-  }
-
-  if (!vaga.apply_url) return <div style={estilo}>{conteudo}</div>
-
-  return (
-    <a
-      href={vaga.apply_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => track('job_clicked', { vaga_id: vaga.id, titulo: vaga.title })}
-      style={estilo}
-    >
-      {conteudo}
-    </a>
-  )
-}
-
+/**
+ * A faixa do WhatsApp, agora ocupando a largura inteira embaixo.
+ *
+ * Nada do visual mudou — mesmo roxo, mesmo ícone em caixa translúcida,
+ * mesmo Playfair 29, mesmos bullets com check e o mesmo botão creme. O
+ * que mudou foi o arranjo: em coluna estreita isso virava um bloco
+ * altíssimo, então os três grupos ficam lado a lado.
+ */
 function CartaoWhatsApp() {
   return (
     <section
       style={{
         background: 'var(--imperial)',
         borderRadius: 'var(--r-card)',
-        padding: '28px 26px 26px',
+        padding: '28px 32px',
       }}
     >
-      <span
-        style={{
-          display: 'flex',
-          width: 48,
-          height: 48,
-          borderRadius: 14,
-          background: 'rgba(241,236,228,.1)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 22,
-        }}
-      >
-        <Icon d={NAV_ICON.comunidade} size={22} stroke="var(--champagne)" />
-      </span>
-
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          color: 'var(--champagne)',
-          marginBottom: 14,
-        }}
-      >
-        Conversas que continuam
-      </div>
-
-      <h2
-        className="k-display"
-        style={{ fontSize: 29, lineHeight: 1.15, color: 'var(--bg)', marginBottom: 14 }}
-      >
-        Entre na comunidade no WhatsApp
-      </h2>
-
-      <p
-        style={{
-          fontSize: 13,
-          lineHeight: 1.65,
-          color: 'rgba(241,236,228,.78)',
-          margin: '0 0 22px',
-        }}
-      >
-        Troque experiências, compartilhe oportunidades e tire dúvidas com quem também está
-        aplicando IA.
-      </p>
-
-      <ul style={{ margin: '0 0 24px', padding: 0, listStyle: 'none' }}>
-        {[
-          'Networking com profissionais da área',
-          'Vagas compartilhadas pela comunidade',
-          'Discussões práticas e eventos',
-        ].map((t) => (
-          <li
-            key={t}
+      <div className="k-whats-faixa">
+        {/* ---- marca e título ---- */}
+        <div style={{ minWidth: 0, flex: '1 1 320px' }}>
+          <span
             style={{
               display: 'flex',
-              gap: 10,
-              alignItems: 'center',
-              fontSize: 12,
-              color: 'rgba(241,236,228,.84)',
-              marginBottom: 10,
-            }}
-          >
-            <Icon
-              d={NAV_ICON.check}
-              size={13}
-              width={2.4}
-              stroke="var(--champagne)"
-              style={{ flex: 'none' }}
-            />
-            {t}
-          </li>
-        ))}
-      </ul>
-
-      {WHATSAPP_URL ? (
-        <>
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => track('community_whatsapp_clicked', { origem: 'cartao' })}
-            style={{
-              background: 'var(--bg)',
-              color: 'var(--imperial)',
-              borderRadius: 10,
-              padding: '13px 0',
-              fontSize: 13,
-              fontWeight: 600,
-              display: 'flex',
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: 'rgba(241,236,228,.1)',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 10,
+              marginBottom: 18,
             }}
           >
-            Acessar comunidade
-            <Icon d={NAV_ICON.arrow} size={14} stroke="var(--imperial)" />
-          </a>
+            <Icon d={NAV_ICON.comunidade} size={22} stroke="var(--champagne)" />
+          </span>
+
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              color: 'var(--champagne)',
+              marginBottom: 12,
+            }}
+          >
+            Conversas que continuam
+          </div>
+
+          <h2
+            className="k-display"
+            style={{ fontSize: 29, lineHeight: 1.15, color: 'var(--bg)', marginBottom: 12 }}
+          >
+            Entre na comunidade no WhatsApp
+          </h2>
+
           <p
             style={{
-              fontSize: 10,
-              color: 'rgba(241,236,228,.5)',
-              margin: '12px 0 0',
-              textAlign: 'center',
+              fontSize: 13,
+              lineHeight: 1.65,
+              color: 'rgba(241,236,228,.78)',
+              margin: 0,
+              maxWidth: 420,
             }}
           >
-            O link será aberto em uma nova aba.
+            Troque experiências, compartilhe oportunidades e tire dúvidas com quem também
+            está aplicando IA.
           </p>
-        </>
-      ) : (
-        <p style={{ fontSize: 12, color: 'rgba(241,236,228,.6)', margin: 0 }}>
-          O link do grupo ainda não foi configurado.
-        </p>
-      )}
+        </div>
+
+        {/* ---- o que se encontra lá ---- */}
+        <ul
+          style={{
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+            flex: '0 1 280px',
+            alignSelf: 'center',
+          }}
+        >
+          {[
+            'Networking com profissionais da área',
+            'Vagas compartilhadas pela comunidade',
+            'Discussões práticas e eventos',
+          ].map((t) => (
+            <li
+              key={t}
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+                fontSize: 12,
+                color: 'rgba(241,236,228,.84)',
+                marginBottom: 10,
+              }}
+            >
+              <Icon
+                d={NAV_ICON.check}
+                size={13}
+                width={2.4}
+                stroke="var(--champagne)"
+                style={{ flex: 'none' }}
+              />
+              {t}
+            </li>
+          ))}
+        </ul>
+
+        {/* ---- ação ---- */}
+        <div style={{ flex: '0 0 288px', alignSelf: 'center' }}>
+          {WHATSAPP_URL ? (
+            <>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => track('community_whatsapp_clicked', { origem: 'faixa' })}
+                style={{
+                  background: 'var(--bg)',
+                  color: 'var(--imperial)',
+                  borderRadius: 10,
+                  padding: '13px 0',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}
+              >
+                Acessar comunidade
+                <Icon d={NAV_ICON.arrow} size={14} stroke="var(--imperial)" />
+              </a>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: 'rgba(241,236,228,.5)',
+                  margin: '12px 0 0',
+                  textAlign: 'center',
+                }}
+              >
+                O link será aberto em uma nova aba.
+              </p>
+            </>
+          ) : (
+            <p style={{ fontSize: 12, color: 'rgba(241,236,228,.6)', margin: 0 }}>
+              O link do grupo ainda não foi configurado.
+            </p>
+          )}
+        </div>
+      </div>
     </section>
   )
 }
 
 /**
- * Faixa de convite. Fica acima da grade, sem escondê-la: quem ainda não
- * entrou no diretório continua vendo quem já entrou.
+ * "Como você aparece", ao lado do Networking.
+ *
+ * Dois estados num cartão só: quem ainda não entrou no diretório vê o
+ * convite; quem já entrou edita o que os outros veem. Antes o convite
+ * era uma faixa dentro do Networking e o editor ficava na lateral — com
+ * a reordenação, os dois pertencem ao mesmo lugar.
  */
-function ConviteDiretorio({
-  userId,
-  onEntrou,
-}: {
-  userId: string | null
-  onEntrou: () => Promise<void>
-}) {
-  const [busy, setBusy] = useState(false)
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        flexWrap: 'wrap',
-        background: 'var(--bg)',
-        borderRadius: 12,
-        padding: '14px 16px',
-        marginBottom: 18,
-      }}
-    >
-      <Icon d={NAV_ICON.perfil} size={18} stroke="var(--bronze)" style={{ flex: 'none' }} />
-      <span style={{ flex: 1, minWidth: 220, fontSize: 12.5, color: 'var(--tx2)', lineHeight: 1.55 }}>
-        Você ainda não aparece aqui. Ao entrar, as outras pessoas veem seu nome, cargo,
-        empresa e um interesse — nunca o seu e-mail.
-      </span>
-      <button
-        onClick={async () => {
-          if (!userId) return
-          setBusy(true)
-          try {
-            await saveCommunityProfile(userId, { community_opt_in: true })
-            track('community_opt_in', {})
-            await onEntrou()
-          } finally {
-            setBusy(false)
-          }
-        }}
-        disabled={busy}
-        style={{
-          flex: 'none',
-          background: 'var(--imperial)',
-          border: 'none',
-          color: 'var(--bg)',
-          borderRadius: 8,
-          padding: '9px 16px',
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        {busy ? 'Entrando...' : 'Entrar no diretório'}
-      </button>
-    </div>
-  )
-}
-
-/** Os campos que o diretório mostra, editáveis pela própria pessoa. */
 function PerfilNaComunidade({
   userId,
+  noDiretorio,
   onSalvo,
 }: {
   userId: string | null
+  noDiretorio: boolean
   onSalvo: () => Promise<void>
 }) {
   const { profile } = useAuth()
@@ -735,8 +569,55 @@ function PerfilNaComunidade({
   const [busy, setBusy] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
 
+  async function entrar() {
+    if (!userId) return
+    setBusy(true)
+    try {
+      await saveCommunityProfile(userId, { community_opt_in: true })
+      track('community_opt_in', {})
+      await onSalvo()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!noDiretorio) {
+    return (
+      <section className="k-card" style={{ padding: '22px 24px' }}>
+        <Kicker style={{ fontSize: 11, letterSpacing: '1px', marginBottom: 10 }}>
+          Como você aparece
+        </Kicker>
+        <h2 className="k-display" style={{ fontSize: 22, marginBottom: 14 }}>
+          Você ainda não está aqui
+        </h2>
+        <p style={{ fontSize: 13.5, color: 'var(--tx2)', lineHeight: 1.65, margin: '0 0 20px' }}>
+          O networking é opcional. Ao entrar, as outras pessoas da Academy veem seu nome,
+          cargo, empresa e um interesse — nunca o seu e-mail. Seu LinkedIn aparece no botão
+          do seu cartão.
+        </p>
+        <button
+          onClick={() => void entrar()}
+          disabled={busy}
+          style={{
+            width: '100%',
+            background: 'var(--imperial)',
+            border: 'none',
+            color: 'var(--bg)',
+            borderRadius: 10,
+            padding: '12px 0',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          {busy ? 'Entrando...' : 'Entrar no diretório'}
+        </button>
+      </section>
+    )
+  }
+
   return (
-    <section className="k-card" style={{ padding: '20px 20px 22px' }}>
+    <section className="k-card" style={{ padding: '22px 24px' }}>
       <Kicker style={{ fontSize: 11, letterSpacing: '1px', marginBottom: 16 }}>
         Como você aparece
       </Kicker>
@@ -835,11 +716,3 @@ function PerfilNaComunidade({
   )
 }
 
-function diasAtras(iso: string): string {
-  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
-  if (dias <= 0) return 'Hoje'
-  if (dias === 1) return 'Há 1 dia'
-  if (dias < 7) return `Há ${dias} dias`
-  const semanas = Math.floor(dias / 7)
-  return semanas === 1 ? 'Há 1 semana' : `Há ${semanas} semanas`
-}
