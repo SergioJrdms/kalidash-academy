@@ -344,3 +344,28 @@ values
    ((date_trunc('year', now())::date + interval '6 month' + interval '28 day')::date + time '19:00') at time zone 'America/Sao_Paulo',
    'Gravação', 'Time Kalidash', 'free', 'published', 'https://www.youtube.com/')
 on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------
+-- VAGAS DA COMUNIDADE
+--
+-- Conteúdo de demonstração, como o resto deste arquivo. A equipe troca
+-- por vagas reais editando a tabela; a tela não depende destas linhas.
+-- ---------------------------------------------------------------------
+insert into public.job_openings
+  (id, title, company, location, contract_type, description, apply_url, status, posted_at)
+values
+  ('e0000000-0000-4000-8000-000000000001',
+   'AI Operations Specialist', 'Vértice', 'São Paulo · Híbrido', 'Tempo integral',
+   'Desenhar e sustentar automações na operação, com métricas de tempo e retrabalho.',
+   null, 'published', now() - interval '2 day'),
+
+  ('e0000000-0000-4000-8000-000000000002',
+   'Product Manager — IA', 'Nexo', 'Remoto · Brasil', 'Tempo integral',
+   'Conduzir o roadmap de produtos com IA, do descobrimento à medição de resultado.',
+   null, 'published', now() - interval '4 day'),
+
+  ('e0000000-0000-4000-8000-000000000003',
+   'Consultor(a) de Automação', 'Lumina', 'Remoto', 'Projeto',
+   'Mapear processos e implantar automações em operações de médio porte.',
+   null, 'published', now() - interval '8 day')
+on conflict (id) do nothing;

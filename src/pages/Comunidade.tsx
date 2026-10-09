@@ -269,18 +269,23 @@ export default function Comunidade() {
               </div>
             )}
 
-            {!noDiretorio ? (
-              <EntrarNoDiretorio
+            {/* O convite vira uma faixa, nao substitui a grade: antes, quem
+                ainda nao tinha entrado no diretorio nao via ninguem. */}
+            {!noDiretorio && (
+              <ConviteDiretorio
                 userId={userId}
                 onEntrou={async () => {
                   await refreshProfile()
                   await load()
                 }}
               />
-            ) : sugestoes.length === 0 ? (
+            )}
+
+            {sugestoes.length === 0 ? (
               <p style={{ fontSize: 14, color: 'var(--tx2)', lineHeight: 1.6, margin: 0 }}>
-                Você é a primeira pessoa no diretório. Conforme a turma for entrando, os
-                perfis aparecem aqui.
+                {noDiretorio
+                  ? 'Você é a primeira pessoa no diretório. Conforme a turma for entrando, os perfis aparecem aqui.'
+                  : 'Ninguém entrou no diretório ainda. Seja o primeiro e as próximas pessoas encontram você aqui.'}
               </p>
             ) : (
               <div className="k-pessoas-grid">
@@ -779,8 +784,11 @@ function CartaoWhatsApp() {
   )
 }
 
-/** Convite para entrar no diretório. Nada aparece para os outros antes disso. */
-function EntrarNoDiretorio({
+/**
+ * Faixa de convite. Fica acima da grade, sem escondê-la: quem ainda não
+ * entrou no diretório continua vendo quem já entrou.
+ */
+function ConviteDiretorio({
   userId,
   onEntrou,
 }: {
@@ -792,20 +800,21 @@ function EntrarNoDiretorio({
   return (
     <div
       style={{
-        border: '0.8px dashed var(--line2)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        flexWrap: 'wrap',
+        background: 'var(--bg)',
         borderRadius: 12,
-        padding: 24,
-        maxWidth: 560,
+        padding: '14px 16px',
+        marginBottom: 18,
       }}
     >
-      <h3 className="k-display" style={{ fontSize: 18, marginBottom: 10 }}>
-        Você ainda não está no diretório
-      </h3>
-      <p style={{ fontSize: 13.5, color: 'var(--tx2)', lineHeight: 1.65, margin: '0 0 18px' }}>
-        O networking é opcional. Ao entrar, as outras pessoas da Academy passam a ver seu
-        nome, cargo, empresa e um interesse. Seu e-mail nunca aparece, e seu LinkedIn só é
-        liberado para quem você aceitar conectar.
-      </p>
+      <Icon d={NAV_ICON.perfil} size={18} stroke="var(--bronze)" style={{ flex: 'none' }} />
+      <span style={{ flex: 1, minWidth: 220, fontSize: 12.5, color: 'var(--tx2)', lineHeight: 1.55 }}>
+        Você ainda não aparece aqui. Ao entrar, as outras pessoas veem seu nome, cargo,
+        empresa e um interesse — nunca o seu e-mail.
+      </span>
       <button
         onClick={async () => {
           if (!userId) return
@@ -820,12 +829,13 @@ function EntrarNoDiretorio({
         }}
         disabled={busy}
         style={{
+          flex: 'none',
           background: 'var(--imperial)',
           border: 'none',
           color: 'var(--bg)',
-          borderRadius: 10,
-          padding: '11px 22px',
-          fontSize: 13,
+          borderRadius: 8,
+          padding: '9px 16px',
+          fontSize: 12,
           fontWeight: 600,
           cursor: 'pointer',
         }}
