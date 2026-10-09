@@ -199,3 +199,48 @@ não uma trilha inteira.
 
 As vagas da Comunidade e os Labs são administrados direto no Supabase: a
 tela de Admin ficou como estava, conforme pedido.
+
+---
+
+# Hierarquia de conteúdo
+
+Definida pelo time em 9 de outubro de 2026:
+
+```
+Trilha
+└── Curso (1 ou mais)
+    └── Módulo
+        └── Aula
+```
+
+A trilha está acima de tudo e agrupa cursos. O curso agrupa módulos, e o
+módulo agrupa aulas.
+
+## Onde o banco diverge hoje
+
+O schema atual **não** tem esse encaixe. Ele tem outro:
+
+- `courses` guarda curso **e** trilha na mesma tabela, separados por
+  `kind` ('curso' | 'trilha'). Uma trilha, portanto, não contém cursos:
+  ela tem módulos direto, igual a um curso.
+- Quem de fato agrupa cursos é `journeys` + `journey_steps`, em que cada
+  etapa aponta para um `course_id`. É um segundo conceito de trilha,
+  paralelo e desconectado do `kind = 'trilha'`.
+
+Ou seja, "trilha" existe duas vezes e nenhuma das duas contém cursos do
+jeito descrito acima.
+
+## O que seria preciso mudar
+
+Para o banco espelhar a hierarquia:
+
+1. Trilha vira entidade própria — ou promovendo `journeys` a trilha de
+   verdade (ela já agrupa cursos em ordem), ou criando `tracks` e
+   movendo para lá as trilhas que hoje vivem em `courses`.
+2. `courses` perde `kind` e volta a ser só curso, ganhando a ligação com
+   a trilha.
+3. As duas trilhas que hoje têm módulos direto (`IA para Líderes` e
+   `Ecossistema Cloud`) precisam de um curso intermediário para os
+   módulos pendurarem.
+4. Telas afetadas: Explorar (aba Trilhas), a página de trilha/curso,
+   Minha Jornada e o Admin de conteúdos.
