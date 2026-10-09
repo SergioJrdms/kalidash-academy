@@ -517,3 +517,27 @@ mux-player {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------------------------------------------------------------
+   tela de Comunidade
+   --------------------------------------------------------------------- */
+
+.k-comunidade-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 20px;
+}
+
+/* Tres pessoas por linha, como no desenho; quebra sozinho quando nao cabe. */
+.k-pessoas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(214px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1060px) {
+  .k-comunidade-grid {
+    grid-template-columns: 1fr;
+  }
+}
