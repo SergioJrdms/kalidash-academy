@@ -186,10 +186,37 @@ runtime das Edge Functions — não precisa defini-las.
 Em produção, troque `APP_ORIGIN` pela origem real do site (ela vira o
 `cors_origin` do Direct Upload do Mux).
 
+### 12b. Google Calendar
+
+A tela de Eventos conecta a agenda da pessoa de verdade: ao se inscrever,
+o encontro entra no Google Calendar dela, com lembretes. Isso exige três
+passos no Google Cloud, no mesmo projeto do login social:
+
+1. **Ativar a API.** Em *APIs & Services → Library*, habilite a
+   **Google Calendar API**.
+2. **Liberar os escopos.** Em *OAuth consent screen → Data access*,
+   adicione `.../auth/calendar.events` e `.../auth/calendar.readonly`.
+   Enquanto o app estiver em *Testing*, cada e-mail que for usar precisa
+   estar em *Test users*.
+3. **Dar o segredo à função**, que é quem troca o refresh token:
+
+```bash
+npx supabase secrets set GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com GOOGLE_CLIENT_SECRET=GOCSPX-xxx
+```
+
+O client id e o secret são os mesmos do login com Google. Eles vivem só
+aqui: nunca no `.env` do frontend, que vai inteiro para o bundle.
+
+O refresh token de cada pessoa fica em `user_google_tokens`, uma tabela
+com RLS ligada e **nenhuma política** — nem o próprio dono lê a própria
+linha pelo PostgREST. Só a Edge Function, com service role, enxerga. O
+app sabe apenas que a conexão existe, pela flag
+`profiles.google_calendar_connected`.
+
 ### 13. Deploy das Edge Functions
 
 ```bash
-npx supabase functions deploy create-mux-upload get-video-playback-token get-material-download delete-mux-video
+npx supabase functions deploy create-mux-upload get-video-playback-token get-material-download delete-mux-video google-calendar
 ```
 
 O webhook precisa ir **sem** verificação de JWT, porque quem chama é o Mux:

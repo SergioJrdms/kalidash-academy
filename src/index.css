@@ -478,8 +478,13 @@ mux-player {
   font-size: 64px;
 }
 
+.k-page-title.is-50 {
+  font-size: 50px;
+}
+
 @media (max-width: 1180px) {
   .k-page-title,
+  .k-page-title.is-50,
   .k-page-title.is-52,
   .k-page-title.is-64 {
     font-size: 46px;
@@ -488,8 +493,27 @@ mux-player {
 
 @media (max-width: 900px) {
   .k-page-title,
+  .k-page-title.is-50,
   .k-page-title.is-52,
   .k-page-title.is-64 {
     font-size: 32px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   tela de Eventos
+   --------------------------------------------------------------------- */
+
+/* Coluna da agenda fixa em 340px, como no desenho. */
+.k-eventos-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 20px;
+}
+
+@media (max-width: 1060px) {
+  .k-eventos-grid {
+    grid-template-columns: 1fr;
   }
 }

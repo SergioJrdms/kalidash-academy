@@ -43,6 +43,8 @@ export type Profile = {
   linkedin_url: string | null
   interest: string | null
   community_opt_in: boolean
+  /** só diz que existe conexão; o token vive fora do alcance do browser */
+  google_calendar_connected: boolean
   level: string | null
   role: UserRole
   access_level: AccessLevel

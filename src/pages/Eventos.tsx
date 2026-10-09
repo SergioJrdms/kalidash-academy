@@ -1,126 +1,179 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { eventDay, eventFullDate, eventTime, initials } from '../lib/format'
+import { eventDay, eventTime, initials } from '../lib/format'
 import type { AcademyEvent } from '../types/db'
-import { loadRegistrations, toggleRegistration } from '../services/jornada'
+import { loadRegistrations } from '../services/jornada'
 import {
-  Avatar,
-  EmptyState,
-  ErrorState,
-  Icon,
-  Kicker,
-  PageLoading,
-} from '../components/ui'
+  PARAM_RETORNO,
+  cancelarInscricao,
+  concluirConexao,
+  desconectar,
+  inscrever,
+  iniciarConexao,
+  listarAgenda,
+  type GoogleEvent,
+} from '../services/calendar'
+import { Avatar, Banner, Icon, Kicker, PageLoading, Spinner } from '../components/ui'
 import { NAV_ICON } from '../lib/icons'
 import UnlockModal from '../components/UnlockModal'
 import { track } from '../lib/analytics'
 
-type Aba = 'proximos' | 'inscricoes' | 'gravacoes'
+const VERMELHO = '#dc2626'
+const VERDE = '#16a34a'
 
 export default function Eventos() {
-  const { session, isPaid } = useAuth()
+  const { session, profile, isPaid, refreshProfile } = useAuth()
   const userId = session?.user.id ?? null
+  const [params, setParams] = useSearchParams()
 
-  const [events, setEvents] = useState<AcademyEvent[]>([])
+  const [eventos, setEventos] = useState<AcademyEvent[]>([])
   const [inscritos, setInscritos] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [locked, setLocked] = useState<string | null>(null)
-  const [aba, setAba] = useState<Aba>('proximos')
   const [ocupado, setOcupado] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  // ---------- agenda ----------
+  const [conectado, setConectado] = useState(Boolean(profile?.google_calendar_connected))
+  const [agenda, setAgenda] = useState<GoogleEvent[]>([])
+  const [conectando, setConectando] = useState(false)
+  const [mes, setMes] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+
+  const carregar = useCallback(async () => {
     const [evRes, regs] = await Promise.all([
       supabase
         .from('events')
         .select('*')
         .eq('status', 'published')
-        .order('starts_at', { ascending: false }),
+        .order('starts_at', { ascending: true }),
       userId ? loadRegistrations(userId).catch(() => new Set<string>()) : Promise.resolve(new Set<string>()),
     ])
 
-    if (evRes.error) setError('Não conseguimos carregar os eventos agora.')
-    else setEvents((evRes.data ?? []) as AcademyEvent[])
+    if (evRes.error) setErro('Não conseguimos carregar os eventos agora.')
+    else setEventos((evRes.data ?? []) as AcademyEvent[])
     setInscritos(regs)
     setLoading(false)
   }, [userId])
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void carregar()
+  }, [carregar])
 
-  const now = Date.now()
+  // Volta do consentimento do Google: guarda os tokens e limpa a URL.
+  useEffect(() => {
+    if (params.get(PARAM_RETORNO) !== '1') return
+    let ativo = true
+    setConectando(true)
 
+    void concluirConexao()
+      .then(async (ok) => {
+        if (!ativo) return
+        if (ok) {
+          setConectado(true)
+          setAviso('Agenda conectada. Agora as inscrições entram no seu Google Calendar.')
+          await refreshProfile()
+        } else {
+          setErro(
+            'O Google não devolveu a autorização completa. Tente conectar de novo e aceite o acesso à agenda.',
+          )
+        }
+      })
+      .catch((e) => ativo && setErro(e instanceof Error ? e.message : 'Falha ao conectar.'))
+      .finally(() => {
+        if (!ativo) return
+        setConectando(false)
+        const p = new URLSearchParams(params)
+        p.delete(PARAM_RETORNO)
+        setParams(p, { replace: true })
+      })
+
+    return () => {
+      ativo = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.get(PARAM_RETORNO)])
+
+  // Com a agenda ligada, busca os compromissos do mês visível.
+  useEffect(() => {
+    if (!conectado) {
+      setAgenda([])
+      return
+    }
+    let ativo = true
+    const de = new Date(mes.getFullYear(), mes.getMonth(), 1)
+    const ate = new Date(mes.getFullYear(), mes.getMonth() + 1, 1)
+
+    void listarAgenda(de, ate)
+      .then((evs) => ativo && setAgenda(evs))
+      .catch(() => ativo && setAgenda([]))
+
+    return () => {
+      ativo = false
+    }
+  }, [conectado, mes])
+
+  const agora = Date.now()
   const proximos = useMemo(
-    () =>
-      events
-        .filter((e) => new Date(e.starts_at).getTime() >= now && !e.recording_url)
-        .sort((a, z) => +new Date(a.starts_at) - +new Date(z.starts_at)),
-    [events, now],
+    () => eventos.filter((e) => new Date(e.starts_at).getTime() >= agora && !e.recording_url),
+    [eventos, agora],
   )
+  const minhas = useMemo(() => proximos.filter((e) => inscritos.has(e.id)), [proximos, inscritos])
   const gravacoes = useMemo(
     () =>
-      events
-        .filter((e) => e.recording_url || new Date(e.starts_at).getTime() < now)
+      eventos
+        .filter((e) => e.recording_url || new Date(e.starts_at).getTime() < agora)
         .sort((a, z) => +new Date(z.starts_at) - +new Date(a.starts_at)),
-    [events, now],
-  )
-  const minhas = useMemo(
-    () => proximos.filter((e) => inscritos.has(e.id)),
-    [proximos, inscritos],
+    [eventos, agora],
   )
 
-  /** Dias com evento no mês visível, para o painel de calendário. */
-  const diasComEvento = useMemo(() => {
-    const m = new Map<string, AcademyEvent[]>()
-    for (const e of proximos) {
-      const d = new Date(e.starts_at)
-      const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      m.set(k, [...(m.get(k) ?? []), e])
-    }
-    return m
-  }, [proximos])
-
-  async function inscrever(e: AcademyEvent) {
+  async function alternarInscricao(e: AcademyEvent) {
     if (!userId) return
     if (e.access_type === 'paid' && !isPaid) {
-      track('event_clicked', {
-        evento_id: e.id,
-        titulo: e.title,
-        formato: e.format,
-        gravacao: false,
-        bloqueado: true,
-      })
+      track('event_clicked', { evento_id: e.id, titulo: e.title, bloqueado: true })
       setLocked(e.title)
       return
     }
 
     const jaEstava = inscritos.has(e.id)
     setOcupado(e.id)
-    // otimista: o selo troca na hora e volta se o banco recusar
-    setInscritos((prev) => {
-      const n = new Set(prev)
-      if (jaEstava) n.delete(e.id)
-      else n.add(e.id)
-      return n
-    })
+    setErro(null)
+    setAviso(null)
+
     try {
-      await toggleRegistration(userId, e.id, !jaEstava)
-      track(jaEstava ? 'event_unregistered' : 'event_registered', {
-        evento_id: e.id,
-        titulo: e.title,
-        formato: e.format,
-      })
-    } catch {
+      const r = jaEstava ? await cancelarInscricao(e.id) : await inscrever(e.id)
       setInscritos((prev) => {
         const n = new Set(prev)
-        if (jaEstava) n.add(e.id)
+        if (r.registered) n.add(e.id)
         else n.delete(e.id)
         return n
       })
+      track(jaEstava ? 'event_unregistered' : 'event_registered', {
+        evento_id: e.id,
+        titulo: e.title,
+        agenda: r.calendar,
+      })
+
+      if (!jaEstava) {
+        setAviso(
+          r.calendar
+            ? `Inscrição feita. "${e.title}" entrou no seu Google Calendar.`
+            : 'Inscrição feita. Conecte sua agenda ao lado para o evento entrar no Google Calendar.',
+        )
+      }
+      // a agenda muda quando criamos/removemos o evento
+      if (conectado) {
+        const de = new Date(mes.getFullYear(), mes.getMonth(), 1)
+        const ate = new Date(mes.getFullYear(), mes.getMonth() + 1, 1)
+        void listarAgenda(de, ate).then(setAgenda).catch(() => {})
+      }
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não foi possível concluir.')
     } finally {
       setOcupado(null)
     }
@@ -128,115 +181,121 @@ export default function Eventos() {
 
   function abrir(e: AcademyEvent) {
     const url = e.recording_url ?? e.external_url
-    const gravacao = Boolean(e.recording_url)
-
     if (e.access_type === 'paid' && !isPaid) {
-      track('event_clicked', {
-        evento_id: e.id,
-        titulo: e.title,
-        formato: e.format,
-        gravacao,
-        bloqueado: true,
-      })
       setLocked(e.title)
       return
     }
-
     track('event_clicked', {
       evento_id: e.id,
       titulo: e.title,
-      formato: e.format,
-      gravacao,
+      gravacao: Boolean(e.recording_url),
       bloqueado: false,
     })
     if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   if (loading) return <PageLoading />
-  if (error) {
-    return (
-      <div className="k-page" style={{ padding: 48 }}>
-        <ErrorState message={error} onRetry={() => void load()} />
-      </div>
-    )
-  }
-
-  const lista = aba === 'proximos' ? proximos : aba === 'inscricoes' ? minhas : gravacoes
 
   return (
-    <div className="k-page" style={{ padding: '48px 48px 100px', maxWidth: 1320 }}>
-      <h1 className="k-display k-h1" style={{ marginBottom: 10 }}>
+    <div className="k-page" style={{ padding: '36px 36px 90px', maxWidth: 1280 }}>
+      <h1 className="k-display k-page-title is-50" style={{ margin: '0 0 10px' }}>
         Eventos
       </h1>
-      <p style={{ color: 'var(--tx2)', fontSize: 16, margin: '0 0 32px', maxWidth: 620 }}>
+      <p style={{ color: 'var(--tx2)', fontSize: 15, margin: '0 0 22px' }}>
         Encontros para aprofundar, aplicar e discutir o que você está desenvolvendo.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.9fr) minmax(0,1fr)', gap: 20 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--line)', marginBottom: 24 }}>
-            {(
-              [
-                [`Próximos (${proximos.length})`, 'proximos'],
-                [`Minhas inscrições (${minhas.length})`, 'inscricoes'],
-                [`Gravações (${gravacoes.length})`, 'gravacoes'],
-              ] as const
-            ).map(([label, key]) => (
-              <button
-                key={key}
-                onClick={() => setAba(key as Aba)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: `2px solid ${aba === key ? 'var(--imperial)' : 'transparent'}`,
-                  color: aba === key ? 'var(--tx)' : 'var(--tx2)',
-                  padding: '12px 16px',
-                  fontSize: 14,
-                  fontWeight: aba === key ? 600 : 400,
-                  cursor: 'pointer',
-                  marginBottom: -1,
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      {(erro || aviso) && (
+        <div style={{ marginBottom: 18, maxWidth: 848 }}>
+          <Banner kind={erro ? 'error' : 'ok'}>{erro ?? aviso}</Banner>
+        </div>
+      )}
 
-          {lista.length === 0 ? (
-            <EmptyState
-              title={
-                aba === 'inscricoes'
-                  ? 'Você ainda não se inscreveu em nada'
-                  : aba === 'gravacoes'
-                    ? 'Nenhuma gravação publicada'
-                    : 'Nenhum evento marcado'
-              }
-              message={
-                aba === 'inscricoes'
-                  ? 'Veja a aba Próximos e garanta seu lugar.'
-                  : 'Assim que a próxima data for definida, ela aparece aqui.'
-              }
-            />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {lista.map((e) => (
-                <EventoCard
+      <div className="k-eventos-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+          <CartaoLista
+            titulo="Próximos"
+            vazio="Nenhum encontro marcado por enquanto. Quando a próxima data sair, ela aparece aqui."
+          >
+            {proximos.map((e, i) => (
+              <LinhaEvento
+                key={e.id}
+                evento={e}
+                destaque={i === 0}
+                inscrito={inscritos.has(e.id)}
+                ocupado={ocupado === e.id}
+                onInscrever={() => void alternarInscricao(e)}
+                onAbrir={() => abrir(e)}
+              />
+            ))}
+          </CartaoLista>
+
+          {minhas.length > 0 && (
+            <CartaoLista titulo="Minhas inscrições" vazio="">
+              {minhas.map((e) => (
+                <LinhaEvento
                   key={e.id}
                   evento={e}
-                  inscrito={inscritos.has(e.id)}
+                  inscrito
+                  compacta
                   ocupado={ocupado === e.id}
-                  gravacao={aba === 'gravacoes'}
-                  bloqueado={e.access_type === 'paid' && !isPaid}
-                  onInscrever={() => void inscrever(e)}
+                  onInscrever={() => void alternarInscricao(e)}
                   onAbrir={() => abrir(e)}
                 />
               ))}
-            </div>
+            </CartaoLista>
+          )}
+
+          {gravacoes.length > 0 && (
+            <CartaoLista titulo="Gravações" vazio="">
+              {gravacoes.map((e) => (
+                <LinhaEvento
+                  key={e.id}
+                  evento={e}
+                  gravacao
+                  ocupado={false}
+                  onInscrever={() => {}}
+                  onAbrir={() => abrir(e)}
+                />
+              ))}
+            </CartaoLista>
           )}
         </div>
 
         <aside style={{ minWidth: 0 }}>
-          <CalendarioCard dias={diasComEvento} />
+          <AgendaCard
+            conectado={conectado}
+            conectando={conectando}
+            mes={mes}
+            setMes={setMes}
+            agenda={agenda}
+            eventosAcademy={proximos}
+            inscritos={inscritos}
+            onConectar={async () => {
+              setConectando(true)
+              setErro(null)
+              try {
+                await iniciarConexao()
+              } catch (e) {
+                setErro(e instanceof Error ? e.message : 'Não foi possível abrir o Google.')
+                setConectando(false)
+              }
+            }}
+            onDesconectar={async () => {
+              setConectando(true)
+              try {
+                await desconectar()
+                setConectado(false)
+                setAgenda([])
+                await refreshProfile()
+                setAviso('Agenda desconectada.')
+              } catch (e) {
+                setErro(e instanceof Error ? e.message : 'Não foi possível desconectar.')
+              } finally {
+                setConectando(false)
+              }
+            }}
+          />
         </aside>
       </div>
 
@@ -245,72 +304,176 @@ export default function Eventos() {
   )
 }
 
-function EventoCard({
+// ---------------------------------------------------------------------
+
+function CartaoLista({
+  titulo,
+  vazio,
+  children,
+}: {
+  titulo: string
+  vazio: string
+  children: React.ReactNode
+}) {
+  const vazia = Array.isArray(children) ? children.length === 0 : !children
+  return (
+    <section className="k-card" style={{ padding: '22px 24px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 6,
+        }}
+      >
+        <Kicker style={{ letterSpacing: '1px' }}>{titulo}</Kicker>
+      </div>
+      {vazia ? (
+        <p style={{ fontSize: 14, color: 'var(--tx2)', lineHeight: 1.6, margin: '12px 0 4px' }}>
+          {vazio}
+        </p>
+      ) : (
+        children
+      )}
+    </section>
+  )
+}
+
+function Selo({
+  children,
+  tom = 'neutro',
+}: {
+  children: React.ReactNode
+  tom?: 'neutro' | 'apagado' | 'vivo' | 'inscrito'
+}) {
+  const [bg, cor] = {
+    neutro: ['var(--bg)', 'var(--tx)'],
+    apagado: ['var(--bg)', 'var(--tx2)'],
+    vivo: ['rgba(239,68,68,.08)', VERMELHO],
+    inscrito: ['rgba(34,197,94,.08)', VERDE],
+  }[tom]
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        background: bg,
+        color: cor,
+        borderRadius: 99,
+        padding: '3px 9px',
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+      }}
+    >
+      {tom === 'vivo' && (
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: VERMELHO }} />
+      )}
+      {children}
+    </span>
+  )
+}
+
+function LinhaEvento({
   evento,
+  destaque,
   inscrito,
-  ocupado,
+  compacta,
   gravacao,
-  bloqueado,
+  ocupado,
   onInscrever,
   onAbrir,
 }: {
   evento: AcademyEvent
-  inscrito: boolean
+  destaque?: boolean
+  inscrito?: boolean
+  compacta?: boolean
+  gravacao?: boolean
   ocupado: boolean
-  gravacao: boolean
-  bloqueado: boolean
   onInscrever: () => void
   onAbrir: () => void
 }) {
   const { dd, mm } = eventDay(evento.starts_at)
-  const aoVivo = !gravacao
 
   return (
-    <section className="k-card" style={{ display: 'flex', gap: 22, padding: 22 }}>
-      {/* data */}
-      <div
-        style={{
-          flex: 'none',
-          width: 64,
-          textAlign: 'center',
-          paddingTop: 2,
-          borderRight: '1px solid var(--line)',
-          paddingRight: 20,
-        }}
-      >
-        <div className="k-display" style={{ fontSize: 32, lineHeight: 1 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 18,
+        padding: compacta ? '18px 0' : '22px 0',
+        borderTop: '0.8px solid var(--line)',
+      }}
+    >
+      <div style={{ flex: 'none', width: 44, textAlign: 'center', paddingTop: 2 }}>
+        <div className="k-display" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>
           {dd}
         </div>
         <div
           style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.66px',
+            color: 'var(--tx3)',
+            marginTop: 6,
             textTransform: 'uppercase',
-            color: 'var(--tx2)',
-            marginTop: 5,
           }}
         >
           {mm}
         </div>
       </div>
 
+      {!compacta && (
+        <div
+          style={{
+            flex: 'none',
+            width: 110,
+            height: 72,
+            borderRadius: 10,
+            overflow: 'hidden',
+            background: evento.thumbnail_url
+              ? `center/cover no-repeat url(${JSON.stringify(evento.thumbnail_url)})`
+              : 'linear-gradient(142deg,#2f1f44 0%,#28183b 45%,#1a1026 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {!evento.thumbnail_url && (
+            <Icon
+              d={NAV_ICON.eventos}
+              size={22}
+              stroke="var(--champagne)"
+              width={1.1}
+              style={{ opacity: 0.45 }}
+            />
+          )}
+        </div>
+      )}
+
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 11 }}>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 9 }}>
           {evento.format && <Selo>{evento.format}</Selo>}
-          {inscrito && <Selo tom="imperial">Inscrito</Selo>}
-          {aoVivo && !inscrito && <Selo tom="terracotta">Ao vivo</Selo>}
-          {gravacao && <Selo tom="bronze">Gravação</Selo>}
-          <Selo tom={evento.access_type === 'paid' ? 'bronze' : 'neutro'}>
-            {evento.access_type === 'paid' ? 'Premium' : 'Gratuito'}
-          </Selo>
+          {inscrito ? (
+            <Selo tom="inscrito">Inscrito</Selo>
+          ) : gravacao ? (
+            <Selo tom="apagado">Gravação</Selo>
+          ) : (
+            <Selo tom="vivo">Ao vivo</Selo>
+          )}
+          <Selo tom="apagado">{evento.access_type === 'free' ? 'Gratuito' : 'Premium'}</Selo>
         </div>
 
-        <h2 className="k-display" style={{ fontSize: 21, lineHeight: 1.25, marginBottom: 8 }}>
+        <h3 className="k-display" style={{ fontSize: 18, lineHeight: 1.3, marginBottom: 8 }}>
           {evento.title}
-        </h2>
-        {evento.description && (
-          <p style={{ fontSize: 14.5, color: 'var(--tx2)', margin: '0 0 14px', lineHeight: 1.6 }}>
+        </h3>
+
+        {!compacta && evento.description && (
+          <p style={{ fontSize: 13.5, color: 'var(--tx2)', lineHeight: 1.55, margin: '0 0 10px' }}>
             {evento.description}
           </p>
         )}
@@ -321,47 +484,54 @@ function EventoCard({
             alignItems: 'center',
             gap: 18,
             flexWrap: 'wrap',
-            fontSize: 13,
+            fontSize: 12.5,
             color: 'var(--tx2)',
-            marginBottom: 18,
           }}
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             <Icon d={NAV_ICON.clock} size={14} stroke="var(--tx3)" />
-            {gravacao ? eventFullDate(evento.starts_at) : `${eventTime(evento.starts_at)} (BRT)`}
+            {eventTime(evento.starts_at)} (BRT)
           </span>
           {evento.instructor_name && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Avatar name={initials(evento.instructor_name)} size={24} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Avatar name={initials(evento.instructor_name)} size={22} />
               {evento.instructor_name}
             </span>
           )}
         </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {gravacao ? (
-            <button onClick={onAbrir} style={botaoPrimario}>
-              Assistir gravação
-              <Icon d={NAV_ICON.arrow} size={15} />
-            </button>
-          ) : inscrito ? (
-            <>
-              <button onClick={onAbrir} style={botaoPrimario}>
-                Entrar ao vivo
-                <Icon d={NAV_ICON.arrow} size={15} />
-              </button>
-              <button onClick={onInscrever} disabled={ocupado} style={botaoFantasma}>
-                Cancelar inscrição
-              </button>
-            </>
-          ) : (
-            <button onClick={onInscrever} disabled={ocupado} style={botaoPrimario}>
-              {bloqueado ? 'Ver como liberar' : ocupado ? 'Inscrevendo...' : 'Inscrever-se'}
-            </button>
-          )}
-        </div>
       </div>
-    </section>
+
+      <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 2 }}>
+        {gravacao ? (
+          <button onClick={onAbrir} style={botaoFantasma}>
+            Assistir
+            <Icon d={NAV_ICON.arrow} size={14} stroke="var(--tx)" />
+          </button>
+        ) : inscrito ? (
+          <>
+            <button onClick={onAbrir} style={botaoPrimario}>
+              Entrar ao vivo
+              <Icon d={NAV_ICON.arrow} size={14} />
+            </button>
+            <button onClick={onInscrever} disabled={ocupado} style={linkCancelar}>
+              {ocupado ? 'Cancelando...' : 'Cancelar inscrição'}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={onInscrever}
+            disabled={ocupado}
+            style={destaque ? botaoPrimario : botaoFantasma}
+          >
+            {ocupado && <Spinner size={12} color={destaque ? 'var(--bg)' : 'var(--tx2)'} />}
+            {ocupado ? 'Inscrevendo' : 'Inscrever-se'}
+            {!ocupado && (
+              <Icon d={NAV_ICON.arrow} size={14} stroke={destaque ? 'var(--bg)' : 'var(--tx)'} />
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -369,106 +539,132 @@ const botaoPrimario: React.CSSProperties = {
   background: 'var(--imperial)',
   border: 'none',
   color: 'var(--bg)',
-  borderRadius: 'var(--r-control)',
-  padding: '11px 22px',
-  fontSize: 13.5,
+  borderRadius: 9,
+  padding: '10px 20px',
+  fontSize: 13,
   fontWeight: 600,
   cursor: 'pointer',
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 9,
+  gap: 8,
+  whiteSpace: 'nowrap',
 }
 
 const botaoFantasma: React.CSSProperties = {
   background: 'transparent',
   border: '0.8px solid var(--line2)',
-  color: 'var(--tx2)',
-  borderRadius: 'var(--r-control)',
-  padding: '11px 18px',
-  fontSize: 13.5,
+  color: 'var(--tx)',
+  borderRadius: 9,
+  padding: '10px 20px',
+  fontSize: 13,
+  fontWeight: 600,
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  whiteSpace: 'nowrap',
 }
 
-function Selo({
-  children,
-  tom = 'neutro',
-}: {
-  children: React.ReactNode
-  tom?: 'neutro' | 'imperial' | 'terracotta' | 'bronze'
-}) {
-  const cores = {
-    neutro: ['var(--bg)', 'var(--tx2)'],
-    imperial: ['rgba(40,24,59,.08)', 'var(--imperial)'],
-    terracotta: ['rgba(183,101,77,.1)', 'var(--terracotta)'],
-    bronze: ['rgba(168,138,88,.14)', 'var(--bronze)'],
-  }[tom]
+const linkCancelar: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  color: 'var(--tx3)',
+  fontSize: 12,
+  cursor: 'pointer',
+  padding: 0,
+  whiteSpace: 'nowrap',
+}
 
+/** O "G" do Google, nas cores oficiais. */
+function GoogleMark({ size = 16 }: { size?: number }) {
   return (
-    <span
-      style={{
-        background: cores[0],
-        color: cores[1],
-        borderRadius: 999,
-        padding: '4px 10px',
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: '0.07em',
-        textTransform: 'uppercase',
-      }}
-    >
-      {children}
-    </span>
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" style={{ flex: 'none' }}>
+      <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.1z" />
+      <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41 15.4 46 24 46z" />
+      <path fill="#FBBC05" d="M11.6 28.1c-.5-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3A22 22 0 002 24c0 3.6.9 6.9 2.3 9.8l7.3-5.7z" />
+      <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 7 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1z" />
+    </svg>
   )
 }
 
-/**
- * Painel de calendário. Mostra o mês com os dias de evento marcados.
- *
- * O botão do Google Calendar está inerte de propósito: sincronizar de
- * verdade exige o OAuth do Google, que não faz parte deste escopo. Em
- * vez de fingir que conectou, cada evento oferece um .ics — isso entra
- * em qualquer agenda hoje, sem integração nenhuma.
- */
-function CalendarioCard({ dias }: { dias: Map<string, AcademyEvent[]> }) {
-  const [mes, setMes] = useState(() => {
-    const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1)
-  })
-
-  const primeiroDiaSemana = mes.getDay()
+function AgendaCard({
+  conectado,
+  conectando,
+  mes,
+  setMes,
+  agenda,
+  eventosAcademy,
+  inscritos,
+  onConectar,
+  onDesconectar,
+}: {
+  conectado: boolean
+  conectando: boolean
+  mes: Date
+  setMes: (d: Date) => void
+  agenda: GoogleEvent[]
+  eventosAcademy: AcademyEvent[]
+  inscritos: Set<string>
+  onConectar: () => void
+  onDesconectar: () => void
+}) {
+  const primeiroDiaSemana = mes.getDay() === 0 ? new Date(mes).getDay() : mes.getDay()
   const diasNoMes = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate()
   const hoje = new Date()
+
+  /** Dias com algo: evento da Academy ou compromisso da agenda. */
+  const marcados = useMemo(() => {
+    const m = new Map<number, { academy: boolean; agenda: boolean }>()
+    const marca = (d: Date, chave: 'academy' | 'agenda') => {
+      if (d.getFullYear() !== mes.getFullYear() || d.getMonth() !== mes.getMonth()) return
+      const atual = m.get(d.getDate()) ?? { academy: false, agenda: false }
+      atual[chave] = true
+      m.set(d.getDate(), atual)
+    }
+    for (const e of eventosAcademy) marca(new Date(e.starts_at), 'academy')
+    for (const g of agenda) if (g.start) marca(new Date(g.start), 'agenda')
+    return m
+  }, [eventosAcademy, agenda, mes])
+
+  const doMes = useMemo(
+    () =>
+      [...agenda]
+        .filter((g) => g.start)
+        .sort((a, b) => (a.start ?? '').localeCompare(b.start ?? ''))
+        .slice(0, 5),
+    [agenda],
+  )
 
   const celulas: (number | null)[] = [
     ...Array<null>(primeiroDiaSemana).fill(null),
     ...Array.from({ length: diasNoMes }, (_, i) => i + 1),
   ]
 
-  const doMes = useMemo(() => {
-    const r: AcademyEvent[] = []
-    for (const [k, evs] of dias) {
-      const [y, m] = k.split('-').map(Number)
-      if (y === mes.getFullYear() && m === mes.getMonth()) r.push(...evs)
-    }
-    return r.sort((a, z) => +new Date(a.starts_at) - +new Date(z.starts_at))
-  }, [dias, mes])
-
   return (
     <section className="k-card" style={{ padding: 22, position: 'sticky', top: 24 }}>
-      <Kicker style={{ marginBottom: 18 }}>Sua agenda</Kicker>
+      <Kicker style={{ letterSpacing: '1px', marginBottom: 10 }}>Integração</Kicker>
+      <h2 className="k-display" style={{ fontSize: 20, marginBottom: 10 }}>
+        Google Calendar
+      </h2>
+      <p style={{ fontSize: 13, color: 'var(--tx2)', lineHeight: 1.6, margin: '0 0 20px' }}>
+        {conectado
+          ? 'Sua agenda está conectada. Cada inscrição vira um compromisso com lembrete.'
+          : 'Sincronize os eventos da Academy com a sua agenda e receba lembretes antes de cada encontro.'}
+      </p>
 
+      {/* ---------- mês ---------- */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 16,
+          marginBottom: 14,
         }}
       >
         <button
           onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}
           aria-label="Mês anterior"
-          style={setaStyle}
+          style={seta}
         >
           <Icon d="M15 6l-6 6 6 6" size={15} stroke="var(--tx2)" />
         </button>
@@ -478,40 +674,27 @@ function CalendarioCard({ dias }: { dias: Map<string, AcademyEvent[]> }) {
         <button
           onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}
           aria-label="Próximo mês"
-          style={setaStyle}
+          style={seta}
         >
           <Icon d="M9 6l6 6-6 6" size={15} stroke="var(--tx2)" />
         </button>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: 2,
-          marginBottom: 6,
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 2 }}>
         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
           <div
             key={i}
-            style={{
-              textAlign: 'center',
-              fontSize: 10.5,
-              fontWeight: 600,
-              color: 'var(--tx3)',
-              padding: '4px 0',
-            }}
+            style={{ textAlign: 'center', fontSize: 9, color: 'var(--tx3)', padding: '4px 0' }}
           >
             {d}
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
         {celulas.map((dia, i) => {
           if (dia === null) return <div key={i} />
-          const temEvento = dias.has(`${mes.getFullYear()}-${mes.getMonth()}-${dia}`)
+          const marca = marcados.get(dia)
           const eHoje =
             dia === hoje.getDate() &&
             mes.getMonth() === hoje.getMonth() &&
@@ -520,121 +703,129 @@ function CalendarioCard({ dias }: { dias: Map<string, AcademyEvent[]> }) {
           return (
             <div
               key={i}
+              title={marca?.agenda ? 'Você tem algo na agenda' : undefined}
               style={{
-                aspectRatio: '1',
+                height: 27,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 12.5,
-                borderRadius: 8,
-                background: temEvento ? 'var(--imperial)' : 'transparent',
-                color: temEvento ? 'var(--bg)' : eHoje ? 'var(--terracotta)' : 'var(--tx2)',
-                fontWeight: temEvento || eHoje ? 600 : 400,
-                border: eHoje && !temEvento ? '1px solid var(--terracotta)' : 'none',
+                position: 'relative',
+                fontSize: 11,
+                borderRadius: 7,
+                background: marca?.academy ? 'var(--bronze)' : 'transparent',
+                color: marca?.academy ? 'var(--bg)' : eHoje ? 'var(--terracotta)' : 'var(--tx2)',
+                fontWeight: marca?.academy || eHoje ? 600 : 400,
+                border: eHoje && !marca?.academy ? '1px solid var(--terracotta)' : 'none',
               }}
             >
               {dia}
+              {marca?.agenda && !marca.academy && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 2,
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--imperial)',
+                  }}
+                />
+              )}
             </div>
           )
         })}
       </div>
 
-      {doMes.length > 0 && (
-        <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--line)' }}>
-          {doMes.map((e) => (
-            <div key={e.id} style={{ display: 'flex', gap: 11, marginBottom: 14 }}>
+      {/* ---------- compromissos reais ---------- */}
+      {conectado && doMes.length > 0 && (
+        <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+          <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 10 }}>
+            Na sua agenda neste mês
+          </div>
+          {doMes.map((g) => (
+            <a
+              key={g.id}
+              href={g.html_link ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', gap: 10, marginBottom: 10, color: 'var(--tx)' }}
+            >
               <span
                 style={{
                   flex: 'none',
-                  width: 7,
-                  height: 7,
+                  width: 5,
+                  height: 5,
                   borderRadius: '50%',
-                  background: 'var(--champagne)',
+                  background: 'var(--imperial)',
                   marginTop: 6,
                 }}
               />
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>
-                  {e.title}
+                <span style={{ display: 'block', fontSize: 12.5, lineHeight: 1.35 }}>
+                  {g.summary}
                 </span>
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--tx2)', marginTop: 3 }}>
-                  {eventFullDate(e.starts_at)} · {eventTime(e.starts_at)}
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--tx3)', marginTop: 2 }}>
+                  {g.start
+                    ? new Date(g.start).toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: 'short',
+                        ...(g.all_day ? {} : { hour: '2-digit', minute: '2-digit' }),
+                      })
+                    : ''}
                 </span>
-                <button onClick={() => baixarIcs(e)} style={linkIcs}>
-                  Adicionar à minha agenda
-                </button>
               </span>
-            </div>
+            </a>
           ))}
         </div>
       )}
 
-      <p
-        style={{
-          fontSize: 12,
-          color: 'var(--tx3)',
-          lineHeight: 1.55,
-          margin: '14px 0 0',
-          paddingTop: 14,
-          borderTop: '1px solid var(--line)',
-        }}
-      >
-        O arquivo de agenda abre no Google Calendar, Outlook ou Apple Calendar, sem precisar
-        conectar sua conta.
+      {/* ---------- ação ---------- */}
+      <div style={{ marginTop: 18 }}>
+        {conectado ? (
+          <button onClick={onDesconectar} disabled={conectando} style={{ ...botaoFantasma, width: '100%', justifyContent: 'center' }}>
+            {conectando && <Spinner size={12} color="var(--tx2)" />}
+            Desconectar agenda
+          </button>
+        ) : (
+          <button
+            onClick={onConectar}
+            disabled={conectando}
+            style={{
+              width: '100%',
+              background: 'var(--imperial)',
+              border: 'none',
+              color: 'var(--bg)',
+              borderRadius: 10,
+              padding: '12px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+            }}
+          >
+            {conectando ? <Spinner size={13} color="var(--bg)" /> : <GoogleMark />}
+            {conectando ? 'Conectando...' : 'Conectar Google Calendar'}
+          </button>
+        )}
+      </div>
+
+      <p style={{ fontSize: 11.5, color: 'var(--tx3)', lineHeight: 1.55, margin: '12px 0 0' }}>
+        {inscritos.size > 0 && conectado
+          ? 'Cancelar uma inscrição também remove o compromisso da sua agenda.'
+          : 'Você controla quais calendários serão sincronizados e pode desconectar quando quiser.'}
       </p>
     </section>
   )
 }
 
-const setaStyle: React.CSSProperties = {
+const seta: React.CSSProperties = {
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
   padding: 4,
   display: 'flex',
   borderRadius: 6,
-}
-
-const linkIcs: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: 'var(--bronze)',
-  fontSize: 12,
-  cursor: 'pointer',
-  padding: '5px 0 0',
-  display: 'block',
-}
-
-/** Gera o .ics do evento no próprio navegador. Uma hora e meia de duração. */
-function baixarIcs(e: AcademyEvent) {
-  const inicio = new Date(e.starts_at)
-  const fim = new Date(inicio.getTime() + 90 * 60 * 1000)
-  const z = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const escapar = (s: string) => s.replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n')
-
-  const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Kalidash Academy//PT-BR',
-    'BEGIN:VEVENT',
-    `UID:${e.id}@kalidash.academy`,
-    `DTSTAMP:${z(new Date())}`,
-    `DTSTART:${z(inicio)}`,
-    `DTEND:${z(fim)}`,
-    `SUMMARY:${escapar(e.title)}`,
-    e.description ? `DESCRIPTION:${escapar(e.description)}` : null,
-    e.external_url ? `URL:${e.external_url}` : null,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ]
-    .filter(Boolean)
-    .join('\r\n')
-
-  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${e.title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').toLowerCase()}.ics`
-  a.click()
-  URL.revokeObjectURL(url)
-  track('event_calendar_added', { evento_id: e.id, titulo: e.title })
 }
