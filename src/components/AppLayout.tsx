@@ -126,7 +126,7 @@ export default function AppLayout() {
             color: 'var(--tx)',
           }}
         >
-          <Avatar name={initials(profile?.full_name ?? 'U')} />
+          <Avatar name={initials(profile?.full_name ?? 'U')} url={profile?.avatar_url ?? null} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
@@ -252,7 +252,7 @@ export default function AppLayout() {
   )
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, url }: { name: string; url?: string | null }) {
   return (
     <div
       style={{
@@ -260,7 +260,9 @@ function Avatar({ name }: { name: string }) {
         width: 32,
         height: 32,
         borderRadius: '50%',
-        background: 'var(--imperial)',
+        background: url
+          ? `center/cover no-repeat url(${JSON.stringify(url)})`
+          : 'var(--imperial)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -269,7 +271,7 @@ function Avatar({ name }: { name: string }) {
         color: 'var(--bg)',
       }}
     >
-      {name}
+      {url ? '' : name}
     </div>
   )
 }

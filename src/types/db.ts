@@ -45,6 +45,7 @@ export type Profile = {
   community_opt_in: boolean
   /** só diz que existe conexão; o token vive fora do alcance do browser */
   google_calendar_connected: boolean
+  avatar_url: string | null
   level: string | null
   role: UserRole
   access_level: AccessLevel

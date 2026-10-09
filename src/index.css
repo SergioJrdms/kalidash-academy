@@ -550,7 +550,10 @@ mux-player {
 .k-perfil-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  /* stretch, nao start: os dois cartoes de cada linha fecham na mesma
+     altura, como no desenho. Com start, um cartao curto ao lado de um
+     longo deixava um buraco. */
+  align-items: stretch;
   gap: 20px;
 }
 

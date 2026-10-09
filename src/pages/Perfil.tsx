@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCatalog } from '../hooks/useCatalog'
@@ -15,6 +15,7 @@ import {
   type LabView,
   type SkillProgress,
 } from '../services/jornada'
+import { enviarAvatar, removerAvatar } from '../services/avatar'
 import { Banner, Icon, Kicker, Modal, PageLoading, Spinner, inputStyle } from '../components/ui'
 import PersonalizationModal from '../components/PersonalizationModal'
 
@@ -189,24 +190,16 @@ export default function Perfil() {
       {/* ---------------- cabeçalho ---------------- */}
       <section className="k-card" style={{ padding: '28px 32px', marginBottom: 20 }}>
         <div className="k-stack-mobile" style={{ display: 'flex', gap: 28 }}>
-          <span
-            style={{
-              flex: 'none',
-              width: 112,
-              height: 112,
-              borderRadius: '50%',
-              border: '2.4px solid var(--line)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 28,
-              fontWeight: 600,
-              fontFamily: 'var(--font-display)',
-              color: 'var(--tx)',
+          <AvatarEditavel
+            userId={userId}
+            url={profile?.avatar_url ?? null}
+            nome={profile?.full_name ?? 'U'}
+            onTrocou={async (msg) => {
+              await refreshProfile()
+              setAviso(msg)
             }}
-          >
-            {initials(profile?.full_name ?? 'U')}
-          </span>
+            onErro={setAviso}
+          />
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 className="k-display k-page-title is-52" style={{ margin: '0 0 10px' }}>
@@ -507,6 +500,138 @@ export default function Perfil() {
 }
 
 // ---------------------------------------------------------------------
+
+/**
+ * A foto de perfil. Clicar abre o seletor de arquivo; o hover mostra a
+ * ação. Sem foto, continua mostrando as iniciais.
+ */
+function AvatarEditavel({
+  userId,
+  url,
+  nome,
+  onTrocou,
+  onErro,
+}: {
+  userId: string | null
+  url: string | null
+  nome: string
+  onTrocou: (msg: string) => Promise<void> | void
+  onErro: (msg: string) => void
+}) {
+  const input = useRef<HTMLInputElement>(null)
+  const [enviando, setEnviando] = useState(false)
+  const [sobre, setSobre] = useState(false)
+
+  async function escolher(arquivo: File | undefined) {
+    if (!arquivo || !userId) return
+    setEnviando(true)
+    try {
+      await enviarAvatar(userId, arquivo)
+      await onTrocou('Foto atualizada.')
+    } catch (e) {
+      onErro(e instanceof Error ? e.message : 'Não foi possível enviar a foto.')
+    } finally {
+      setEnviando(false)
+      if (input.current) input.current.value = ''
+    }
+  }
+
+  return (
+    <div style={{ flex: 'none', width: 112 }}>
+      <button
+        onClick={() => input.current?.click()}
+        onMouseEnter={() => setSobre(true)}
+        onMouseLeave={() => setSobre(false)}
+        disabled={enviando}
+        title="Trocar foto"
+        style={{
+          position: 'relative',
+          width: 112,
+          height: 112,
+          borderRadius: '50%',
+          border: '2.4px solid var(--line)',
+          background: url ? `center/cover no-repeat url(${JSON.stringify(url)})` : 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 28,
+          fontWeight: 600,
+          fontFamily: 'var(--font-display)',
+          color: 'var(--tx)',
+          cursor: enviando ? 'default' : 'pointer',
+          overflow: 'hidden',
+          padding: 0,
+        }}
+      >
+        {!url && !enviando && initials(nome)}
+
+        {(sobre || enviando) && (
+          <span
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(14,10,20,.55)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              color: 'var(--bg)',
+            }}
+          >
+            {enviando ? (
+              <Spinner size={18} color="var(--bg)" />
+            ) : (
+              <>
+                <Icon d={NAV_ICON.download} size={18} stroke="var(--bg)" />
+                <span style={{ fontSize: 10.5, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+                  Trocar foto
+                </span>
+              </>
+            )}
+          </span>
+        )}
+      </button>
+
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={(e) => void escolher(e.target.files?.[0])}
+        style={{ display: 'none' }}
+      />
+
+      {url && !enviando && (
+        <button
+          onClick={async () => {
+            if (!userId) return
+            setEnviando(true)
+            try {
+              await removerAvatar(userId)
+              await onTrocou('Foto removida.')
+            } catch (e) {
+              onErro(e instanceof Error ? e.message : 'Não foi possível remover.')
+            } finally {
+              setEnviando(false)
+            }
+          }}
+          style={{
+            width: '100%',
+            marginTop: 10,
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--tx3)',
+            fontSize: 11.5,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          Remover
+        </button>
+      )}
+    </div>
+  )
+}
 
 function CabecaCartao({ titulo, para }: { titulo: string; para: string }) {
   return (
